@@ -98,10 +98,12 @@ teleported and isn't blended.
 - Their own movement is written into their vertices. Blending that per triangle pulled shapes
   apart (triangles paired with the wrong partner), so only two kinds are moved, both recognised
   by the part of their texture they show, which stays the same with or without texture packs:
-  - the **battle target marker** (`MARKER`): each half is paired with the nearest half of the
+  - **single pieces** (`PIECE`): the battle target marker (two halves) and the shadows under
+    characters in towns and dungeons. Each is paired with the nearest of its kind in the
     previous frame and moved as one piece;
-  - **round ground shadows** (`SHADOW`): triangles that share a vertex are grouped into whole
-    shadows, each shadow is paired with the nearest one, and all its triangles move together.
+  - **rings** (`RING`): battle shadows, drawn as a ring of triangles. Triangles that share a
+    vertex are grouped into whole shadows, each is paired with the nearest one, and all its
+    triangles move together.
 - An indexed sprite draw's `MinIndex`/`NumVertices` arguments don't describe the vertices it
   uses (they say 0-2 while the index list points thousands further on), so the vertices are
   found from the draw's index list. Index buffers can't be read back from the GPU, so TOSFIXPLUS
@@ -138,7 +140,7 @@ compositor's timing is used.
 ## Changing things
 
 - **A sprite that still steps at 30.** Find the part of its texture it shows (its texture
-  coordinates' bounding box) and add it to `MARKER` if it's a simple shape, or `SHADOW` if it's a
+  coordinates' bounding box) and add it to `PIECE` if it's drawn as one piece, or `RING` if it's a
   ring or fan of triangles sharing a vertex. The texture coordinates can be read from a draw's
   vertices with a Direct3D 9 capture tool such as RenderDoc or apitrace, or by logging
   `Sprite::uvLo` and `uvHi` from `spriteOf()`.

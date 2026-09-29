@@ -15,9 +15,9 @@
 //   - Characters: posed on the CPU, their vertices rewritten each frame; positions and normals
 //     are blended.
 //   - Sprites (effects, grass, shadows, the target marker): camera-facing quads rebuilt every
-//     frame in one shared buffer, drawn one triangle per draw. Their shared camera matrix is
-//     blended. The battle target marker and the round ground shadows also move with what they
-//     follow; they are recognised by the part of the texture they show.
+//     frame in one shared buffer. Their shared camera matrix is blended. The target marker and
+//     the shadows under characters also move with what they follow; they are recognised by the
+//     part of the texture they show.
 //   - 2D (HUD, menus, text) and videos are never blended.
 // Nothing is blended across a camera cut.
 #include "recorder.h"
@@ -49,13 +49,18 @@ void configureInterpolation(const char* ini) {
 // stay the same with or without the 4K texture pack.
 struct TextureArea { float lo[2], hi[2]; };
 
-// The battle target marker: its left and right halves in the UI texture. Moved with the enemy it
-// points at. (The same shape drawn flat beside the enemy icons is 2D and never blends.)
-static const TextureArea MARKER[] = {{{0.0f, 0.5f}, {0.0469f, 0.625f}}, {{0.0469f, 0.5f}, {0.0938f, 0.625f}}};
+// Sprites drawn as one piece, moved with what they follow:
+//   - the battle target marker, its left and right halves in the UI texture (the same shape drawn
+//     flat beside the enemy icons is 2D and never blends);
+//   - the shadows under characters in towns and dungeons.
+static const TextureArea PIECE[] = {
+    {{0.0f, 0.5f}, {0.0469f, 0.625f}}, {{0.0469f, 0.5f}, {0.0938f, 0.625f}},   // target marker
+    {{0.0f, 0.0f}, {0.25f, 0.25f}},                                            // town shadow
+};
 
-// Round ground shadows: a ring of about 16 separate triangles around a shared centre vertex.
-// Grouped into whole shadows, each moved as one piece.
-static const TextureArea SHADOW[] = {{{0.0156f, 0.0156f}, {0.0156f, 0.9844f}}};
+// Battle shadows: a ring of about 16 separate triangles around a shared centre vertex. Grouped
+// into whole shadows, each moved as one piece.
+static const TextureArea RING[] = {{{0.0156f, 0.0156f}, {0.0156f, 0.9844f}}};
 
 // ---------------------------------------------------------------- per-draw information
 
@@ -457,42 +462,42 @@ static void buildPlan() {
     {
         static WriteIndex writesNow, writesBefore;
         indexWrites(gLastFrame, writesNow); indexWrites(gFrameBefore, writesBefore);
-        std::vector<Sprite> markersNow, markersBefore, shadowsNow, shadowsBefore;
+        std::vector<Sprite> piecesNow, piecesBefore, ringsNow, ringsBefore;
         for (const DrawInfo& d : P.current) {
             if (!(d.flags & SHADER_PLACES_OBJECT) || flat(d) || (P.pair[d.command] >= 0 && P.registers[d.command] != 4)) continue;
             Sprite s = spriteOf(gLastFrame, writesNow, d);
             if (!s.data) continue;
-            if (shows(s, MARKER)) markersNow.push_back(s);
-            else if (shows(s, SHADOW)) shadowsNow.push_back(s);
+            if (shows(s, PIECE)) piecesNow.push_back(s);
+            else if (shows(s, RING)) ringsNow.push_back(s);
         }
         for (size_t i = 0; i < P.previous.size(); i++) {
             const DrawInfo& d = P.previous[i];
             if (used[i] || !(d.flags & SHADER_PLACES_OBJECT) || flat(d)) continue;
             Sprite s = spriteOf(gFrameBefore, writesBefore, d);
             if (!s.data) continue;
-            if (shows(s, MARKER)) markersBefore.push_back(s);
-            else if (shows(s, SHADOW)) shadowsBefore.push_back(s);
+            if (shows(s, PIECE)) piecesBefore.push_back(s);
+            else if (shows(s, RING)) ringsBefore.push_back(s);
         }
-        // Each half of the marker pairs with the nearest of the same kind; one that moved more
-        // than twice its size isn't moved.
-        std::vector<bool> taken(markersBefore.size());
-        for (const Sprite& s : markersNow) {
+        // Each piece pairs with the nearest of the same kind; one that moved more than twice its
+        // size isn't moved.
+        std::vector<bool> taken(piecesBefore.size());
+        for (const Sprite& s : piecesNow) {
             int best = -1; float bestD = 1e30f;
-            for (size_t j = 0; j < markersBefore.size(); j++) {
-                if (taken[j] || markersBefore[j].d->key2 != s.d->key2) continue;
-                float dd = distance2(s.centre, markersBefore[j].centre);
+            for (size_t j = 0; j < piecesBefore.size(); j++) {
+                if (taken[j] || piecesBefore[j].d->key2 != s.d->key2) continue;
+                float dd = distance2(s.centre, piecesBefore[j].centre);
                 if (dd < bestD) { bestD = dd; best = (int)j; }
             }
             if (best < 0) continue;
             taken[best] = true;
-            const Sprite& p = markersBefore[best];
+            const Sprite& p = piecesBefore[best];
             if (matrixChange(*p.d, *s.d, 4) > 0.6f || s.bytes != p.bytes || bestD > 4 * std::max(s.size2, p.size2)) continue;
             float by[3] = {s.centre[0] - p.centre[0], s.centre[1] - p.centre[1], s.centre[2] - p.centre[2]};
             addMove(P, s, by, (int)(p.d - P.previous.data()));
             P.sprites++;
         }
-        // Shadows: whole shapes pair with the nearest; one that moved more than its size isn't moved.
-        std::vector<Shape> now = groupShapes(shadowsNow), before = groupShapes(shadowsBefore);
+        // Rings: whole shapes pair with the nearest; one that moved more than its size isn't moved.
+        std::vector<Shape> now = groupShapes(ringsNow), before = groupShapes(ringsBefore);
         std::vector<bool> gone(before.size());
         for (const Shape& a : now) {
             int best = -1; float bestD = 1e30f;
@@ -503,11 +508,11 @@ static void buildPlan() {
             }
             if (best < 0 || bestD > std::max(a.size2, before[best].size2)) continue;
             gone[best] = true;
-            const Sprite& ref = shadowsBefore[before[best].parts[0]];
+            const Sprite& ref = ringsBefore[before[best].parts[0]];
             float by[3] = {a.centre[0] - before[best].centre[0], a.centre[1] - before[best].centre[1], a.centre[2] - before[best].centre[2]};
             for (int i : a.parts) {
-                if (matrixChange(*ref.d, *shadowsNow[i].d, 4) > 0.6f) continue;
-                addMove(P, shadowsNow[i], by, (int)(ref.d - P.previous.data()));
+                if (matrixChange(*ref.d, *ringsNow[i].d, 4) > 0.6f) continue;
+                addMove(P, ringsNow[i], by, (int)(ref.d - P.previous.data()));
                 P.sprites++;
             }
         }

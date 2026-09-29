@@ -80,7 +80,7 @@ TOSFIXPLUS started and which Direct3D 9 it is using.
 | The camera, scenery, buildings, terrain | Yes |
 | Characters and enemies, including their animation | Yes |
 | Outlines and depth effects | Yes, together with their objects |
-| The battle target marker and ground shadows | Yes, they follow what they belong to |
+| The battle target marker, shadows under characters | Yes, they follow what they belong to |
 | Effects, grass and other sprites | They follow the camera; their own movement stays at 30 |
 | HUD, menus, text, pre-rendered videos | No, on purpose: they stay exactly as the game draws them |
 
@@ -89,7 +89,7 @@ Camera cuts are detected and never blended across.
 ## Known limitations
 
 - Sprite effects (spell particles, sparks) that move on their own still move at 30 updates a
-  second; only the target marker and ground shadows are matched individually so far.
+  second; only the target marker and character shadows are matched individually so far.
 - Tested on the first hours of the game. Exclusive fullscreen, variable refresh (G-Sync or
   FreeSync) and 60 Hz displays haven't been tested.
 - About 33 ms of extra display latency, as explained above.
