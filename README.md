@@ -42,16 +42,17 @@ Press **F9** in game to turn TOSFIXPLUS on and off and compare.
      When=Proxy
      Filename=tosfixplus.dll
      ```
-4. Raise TSFix's frame limit. Open **`tsfix.ini`** and, under `[TSFix.Window]`, set
+4. Take TSFix's frame limit out of the way. Open **`tsfix.ini`** and, under `[TSFix.Window]`, set
    ```ini
-   ForegroundFPS=60.0
-   BackgroundFPS=60.0
+   ForegroundFPS=1000.0
+   BackgroundFPS=1000.0
    ```
-   TOSFIXPLUS keeps the game at 30 updates a second itself; TSFix's limit must be above that so
-   the two don't fight.
+   TOSFIXPLUS keeps the game at exactly 30 updates a second itself. TSFix's own limiter has to
+   stay out of its way: at 60 it still holds a frame back now and then, which shows as a small
+   hitch.
 
-> **Do step 4 only together with step 3.** Without TOSFIXPLUS, a limit of 60 makes TSFix run
-> the whole game at double speed.
+> **Do step 4 only together with step 3.** Without TOSFIXPLUS, a limit above 30 makes the whole
+> game run too fast.
 
 Start the game. A file `tosfixplus.log` appears in the game folder; its first lines say
 TOSFIXPLUS started and which Direct3D 9 it is using.
@@ -81,15 +82,13 @@ TOSFIXPLUS started and which Direct3D 9 it is using.
 | Characters and enemies, including their animation | Yes |
 | Outlines and depth effects | Yes, together with their objects |
 | The battle target marker, shadows under characters | Yes, they follow what they belong to |
-| Effects, grass and other sprites | They follow the camera; their own movement stays at 30 |
+| Spell effects, particles, grass and other sprites | Yes, each moved as one piece; a sprite that jumps (a new particle) appears in place |
 | HUD, menus, text, pre-rendered videos | No, on purpose: they stay exactly as the game draws them |
 
 Camera cuts are detected and never blended across.
 
 ## Known limitations
 
-- Sprite effects (spell particles, sparks) that move on their own still move at 30 updates a
-  second; only the target marker and character shadows are matched individually so far.
 - Tested on the first hours of the game. Exclusive fullscreen, variable refresh (G-Sync or
   FreeSync) and 60 Hz displays haven't been tested.
 - About 33 ms of extra display latency, as explained above.

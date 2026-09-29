@@ -297,15 +297,16 @@ static std::string moduleDir() {
     return s.substr(0, s.find_last_of("\\/"));
 }
 
-// TOSFIXPLUS paces the game itself, so TSFix's own frame limiter must be above 30. Warn in the
-// log if it isn't; the game would otherwise be held below 30 at times.
+// TOSFIXPLUS paces the game itself, so TSFix's own frame limiter must be well above 30. At 60,
+// its ticks drift against TOSFIXPLUS's schedule and hold a frame back about every 20 game frames
+// (a small hitch); at 30, the game can't keep time. Warn in the log.
 static void checkTsfix() {
     std::string ini = gDir + "\\tsfix.ini";
     if (GetFileAttributesA(ini.c_str()) == INVALID_FILE_ATTRIBUTES) { log("tsfix.ini not found next to the game"); return; }
     char value[32];
     GetPrivateProfileStringA("TSFix.Window", "ForegroundFPS", "", value, sizeof value, ini.c_str());
-    if (value[0] && atof(value) <= 30.0)
-        log("WARNING: tsfix.ini has ForegroundFPS=%s; set ForegroundFPS and BackgroundFPS to 60 (see README)", value);
+    if (value[0] && atof(value) <= 60.0)
+        log("WARNING: tsfix.ini has ForegroundFPS=%s; set ForegroundFPS and BackgroundFPS to 1000 (see README)", value);
 }
 
 static bool start() {

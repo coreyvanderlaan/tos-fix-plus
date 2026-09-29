@@ -15,9 +15,9 @@
 //   - Characters: posed on the CPU, their vertices rewritten each frame; positions and normals
 //     are blended.
 //   - Sprites (effects, grass, shadows, the target marker): camera-facing quads rebuilt every
-//     frame in one shared buffer. Their shared camera matrix is blended. The target marker and
-//     the shadows under characters also move with what they follow; they are recognised by the
-//     part of the texture they show.
+//     frame in one shared buffer. Their shared camera matrix is blended, and each is also moved
+//     with its own motion as one solid piece: the target marker and shadows are recognised by the
+//     part of the texture they show; everything else is grouped into whole shapes.
 //   - 2D (HUD, menus, text) and videos are never blended.
 // Nothing is blended across a camera cut.
 #include "recorder.h"
@@ -458,17 +458,20 @@ static void buildPlan() {
         }
     }
 
-    // 3. The target marker and the shadows also move with what they follow.
+    // 3. Sprites also move with their own motion: the target marker and shadows (recognised by
+    //    texture area), and every other sprite as whole shapes.
     {
         static WriteIndex writesNow, writesBefore;
         indexWrites(gLastFrame, writesNow); indexWrites(gFrameBefore, writesBefore);
         std::vector<Sprite> piecesNow, piecesBefore, ringsNow, ringsBefore;
+        std::unordered_map<uint64_t, std::vector<Sprite>> othersNow, othersBefore;   // per kind
         for (const DrawInfo& d : P.current) {
             if (!(d.flags & SHADER_PLACES_OBJECT) || flat(d) || (P.pair[d.command] >= 0 && P.registers[d.command] != 4)) continue;
             Sprite s = spriteOf(gLastFrame, writesNow, d);
             if (!s.data) continue;
             if (shows(s, PIECE)) piecesNow.push_back(s);
             else if (shows(s, RING)) ringsNow.push_back(s);
+            else othersNow[d.key2].push_back(s);
         }
         for (size_t i = 0; i < P.previous.size(); i++) {
             const DrawInfo& d = P.previous[i];
@@ -477,6 +480,7 @@ static void buildPlan() {
             if (!s.data) continue;
             if (shows(s, PIECE)) piecesBefore.push_back(s);
             else if (shows(s, RING)) ringsBefore.push_back(s);
+            else othersBefore[d.key2].push_back(s);
         }
         // Each piece pairs with the nearest of the same kind; one that moved more than twice its
         // size isn't moved.
@@ -496,25 +500,34 @@ static void buildPlan() {
             addMove(P, s, by, (int)(p.d - P.previous.data()));
             P.sprites++;
         }
-        // Rings: whole shapes pair with the nearest; one that moved more than its size isn't moved.
-        std::vector<Shape> now = groupShapes(ringsNow), before = groupShapes(ringsBefore);
-        std::vector<bool> gone(before.size());
-        for (const Shape& a : now) {
-            int best = -1; float bestD = 1e30f;
-            for (size_t j = 0; j < before.size(); j++) {
-                if (gone[j]) continue;
-                float dd = distance2(a.centre, before[j].centre);
-                if (dd < bestD) { bestD = dd; best = (int)j; }
+        // Rings, and every other sprite (spell effects, particles), grouped per kind into whole
+        // shapes: each shape pairs with the nearest of frame N-1 and all its triangles move
+        // together. One that moved more than its size (a new particle, a burst) isn't moved.
+        auto moveShapes = [&](const std::vector<Sprite>& spritesNow, const std::vector<Sprite>& spritesBefore) {
+            std::vector<Shape> now = groupShapes(spritesNow), before = groupShapes(spritesBefore);
+            std::vector<bool> gone(before.size());
+            for (const Shape& a : now) {
+                int best = -1; float bestD = 1e30f;
+                for (size_t j = 0; j < before.size(); j++) {
+                    if (gone[j]) continue;
+                    float dd = distance2(a.centre, before[j].centre);
+                    if (dd < bestD) { bestD = dd; best = (int)j; }
+                }
+                if (best < 0 || bestD > std::max(a.size2, before[best].size2)) continue;
+                gone[best] = true;
+                const Sprite& ref = spritesBefore[before[best].parts[0]];
+                float by[3] = {a.centre[0] - before[best].centre[0], a.centre[1] - before[best].centre[1], a.centre[2] - before[best].centre[2]};
+                for (int i : a.parts) {
+                    if (matrixChange(*ref.d, *spritesNow[i].d, 4) > 0.6f) continue;
+                    addMove(P, spritesNow[i], by, (int)(ref.d - P.previous.data()));
+                    P.sprites++;
+                }
             }
-            if (best < 0 || bestD > std::max(a.size2, before[best].size2)) continue;
-            gone[best] = true;
-            const Sprite& ref = ringsBefore[before[best].parts[0]];
-            float by[3] = {a.centre[0] - before[best].centre[0], a.centre[1] - before[best].centre[1], a.centre[2] - before[best].centre[2]};
-            for (int i : a.parts) {
-                if (matrixChange(*ref.d, *ringsNow[i].d, 4) > 0.6f) continue;
-                addMove(P, ringsNow[i], by, (int)(ref.d - P.previous.data()));
-                P.sprites++;
-            }
+        };
+        if (!ringsNow.empty()) moveShapes(ringsNow, ringsBefore);
+        for (auto& kind : othersNow) {
+            auto before = othersBefore.find(kind.first);
+            if (before != othersBefore.end()) moveShapes(kind.second, before->second);
         }
     }
 

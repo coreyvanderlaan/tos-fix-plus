@@ -96,14 +96,18 @@ teleported and isn't blended.
 - All sprites share the camera's matrix, so blending that (c0-c3) keeps them with the scene when
   the camera moves, whatever the pairing. That is done for every sprite.
 - Their own movement is written into their vertices. Blending that per triangle pulled shapes
-  apart (triangles paired with the wrong partner), so only two kinds are moved, both recognised
-  by the part of their texture they show, which stays the same with or without texture packs:
+  apart (triangles paired with the wrong partner), so sprites are moved as **whole pieces**:
   - **single pieces** (`PIECE`): the battle target marker (two halves) and the shadows under
-    characters in towns and dungeons. Each is paired with the nearest of its kind in the
-    previous frame and moved as one piece;
-  - **rings** (`RING`): battle shadows, drawn as a ring of triangles. Triangles that share a
-    vertex are grouped into whole shadows, each is paired with the nearest one, and all its
-    triangles move together.
+    characters in towns and dungeons, recognised by the part of their texture they show (which
+    stays the same with or without texture packs). Each is paired with the nearest of its kind in
+    the previous frame and moved as one piece;
+  - **rings** (`RING`): battle shadows, drawn as a ring of triangles around a shared vertex;
+  - **everything else** (spell effects, particles, grass): grouped per kind (shader, texture,
+    size) into shapes of triangles that share vertices.
+
+  Rings and shapes are paired with the nearest shape of the previous frame and all their
+  triangles move together. A piece or shape that moved further than its own size (a new
+  particle, a burst) isn't moved.
 - An indexed sprite draw's `MinIndex`/`NumVertices` arguments don't describe the vertices it
   uses (they say 0-2 while the index list points thousands further on), so the vertices are
   found from the draw's index list. Index buffers can't be read back from the GPU, so TOSFIXPLUS
@@ -134,14 +138,17 @@ TOSFIXPLUS decides when the game gets to run, which makes it the frame limiter:
    towards it), then waits until the schedule says the game may continue.
 
 With F9 off, the game's own frame is presented as it is and the same pacing applies, so the game
-speed never changes. Direct3D 9's Present doesn't wait for the display here, which is why the
+speed never changes. TSFix's own limiter must be set far above 30 (the README says 1000): at 60,
+its ticks drift against this schedule and hold back a frame about every 20 game frames, longer
+than a refresh at 144 Hz. Direct3D 9's Present doesn't wait for the display here, which is why the
 compositor's timing is used.
 
 ## Changing things
 
-- **A sprite that still steps at 30.** Find the part of its texture it shows (its texture
-  coordinates' bounding box) and add it to `PIECE` if it's drawn as one piece, or `RING` if it's a
-  ring or fan of triangles sharing a vertex. The texture coordinates can be read from a draw's
+- **A sprite that moves wrongly.** Most sprites are handled as generic shapes. One that needs
+  its own rule can be recognised by the part of its texture it shows (its texture coordinates'
+  bounding box) and added to `PIECE` if it's drawn as one piece, or `RING` if it's a ring or fan
+  of triangles sharing a vertex. The texture coordinates can be read from a draw's
   vertices with a Direct3D 9 capture tool such as RenderDoc or apitrace, or by logging
   `Sprite::uvLo` and `uvHi` from `spriteOf()`.
 - **Something blends that shouldn't.** Check how its draws are paired (`buildPlan`) and whether
