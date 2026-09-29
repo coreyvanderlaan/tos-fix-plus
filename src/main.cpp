@@ -1,6 +1,6 @@
-// TOSFIXPLUS: entry point and Direct3D 9 hooks.
+// TSFix+: entry point and Direct3D 9 hooks.
 //
-// tosfixplus.dll is loaded in place of Direct3D 9: Special K (installed with TSFix) loads it as
+// tsfixplus.dll is loaded in place of Direct3D 9: Special K (installed with TSFix) loads it as
 // its "d3d9 proxy". It loads the real Direct3D 9 (dgVoodoo.dll next to it if present, otherwise
 // Windows' own d3d9.dll), hands the game the real device, and replaces some of the device's
 // methods (vtable entries) with the hooks below. Each hook tells recorder.cpp about the call and
@@ -15,7 +15,7 @@ CRITICAL_SECTION gLock;
 std::unordered_map<void*, BufferInfo> gBuffers;
 std::unordered_map<void*, std::vector<uint8_t>> gIndexCopies;
 
-static std::string gDir;   // the folder tosfixplus.dll is in
+static std::string gDir;   // the folder tsfixplus.dll is in
 static FILE* gLog;
 
 // ---------------------------------------------------------------- log
@@ -297,8 +297,8 @@ static std::string moduleDir() {
     return s.substr(0, s.find_last_of("\\/"));
 }
 
-// TOSFIXPLUS paces the game itself, so TSFix's own frame limiter must be well above 30. At 60,
-// its ticks drift against TOSFIXPLUS's schedule and hold a frame back about every 20 game frames
+// TSFix+ paces the game itself, so TSFix's own frame limiter must be well above 30. At 60,
+// its ticks drift against TSFix+'s schedule and hold a frame back about every 20 game frames
 // (a small hitch); at 30, the game can't keep time. Warn in the log.
 static void checkTsfix() {
     std::string ini = gDir + "\\tsfix.ini";
@@ -315,8 +315,8 @@ static bool start() {
     started = true;
     InitializeCriticalSection(&gLock);
     gDir = moduleDir();
-    gLog = fopen((gDir + "\\tosfixplus.log").c_str(), "w");
-    log("TOSFIXPLUS started");
+    gLog = fopen((gDir + "\\tsfixplus.log").c_str(), "w");
+    log("TSFix+ started");
     // dgVoodoo if it is installed next to the game, otherwise Windows' Direct3D 9.
     std::string dgVoodoo = gDir + "\\dgVoodoo.dll";
     if (GetFileAttributesA(dgVoodoo.c_str()) != INVALID_FILE_ATTRIBUTES) gRealD3D9 = LoadLibraryA(dgVoodoo.c_str());
@@ -328,14 +328,14 @@ static bool start() {
     char loaded[MAX_PATH] = "";
     if (gRealD3D9) GetModuleFileNameA(gRealD3D9, loaded, MAX_PATH);
     log("Direct3D 9: %s", gRealD3D9 ? loaded : "could not be loaded");
-    configureInterpolation((gDir + "\\tosfixplus.ini").c_str());
+    configureInterpolation((gDir + "\\tsfixplus.ini").c_str());
     checkTsfix();
     return gRealD3D9 != nullptr;
 }
 
 static FARPROC real(const char* name) { return gRealD3D9 ? GetProcAddress(gRealD3D9, name) : nullptr; }
 
-// ---------------------------------------------------------------- exports (see tosfixplus.def)
+// ---------------------------------------------------------------- exports (see tsfixplus.def)
 
 extern "C" IDirect3D9* WINAPI Direct3DCreate9(UINT sdk) {
     if (!start()) return nullptr;

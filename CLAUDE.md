@@ -1,6 +1,6 @@
-# tos-fix-plus: notes for Claude sessions
+# ts-fix-plus: notes for Claude sessions
 
-The public release of TOSFIXPLUS. Development, diagnostics and test tooling live in the private
+The public release of TSFix+. Development, diagnostics and test tooling live in the private
 `E:\Projects\tos-60fps` repo (capture, burst, replay test, trace, install and drive scripts);
 this repo is only what ships.
 

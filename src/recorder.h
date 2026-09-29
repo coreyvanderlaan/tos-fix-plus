@@ -1,4 +1,4 @@
-// TOSFIXPLUS: recorded frames, shared by recorder.cpp and interpolate.cpp.
+// TSFix+: recorded frames, shared by recorder.cpp and interpolate.cpp.
 #pragma once
 #include "common.h"
 
@@ -18,7 +18,7 @@ enum {
 struct Stream { IDirect3DVertexBuffer9* buffer; UINT offset, stride, frequency; };
 
 // Everything the game can set on the device, and which entries it has set. The game's device
-// can't be asked for its state (it is created as a "pure" device), so TOSFIXPLUS keeps its own
+// can't be asked for its state (it is created as a "pure" device), so TSFix+ keeps its own
 // copy. Only entries the game has set are re-applied; the rest are still at their defaults.
 struct DeviceState {
     IDirect3DSurface9* renderTarget[4]; IDirect3DSurface9* depthStencil;

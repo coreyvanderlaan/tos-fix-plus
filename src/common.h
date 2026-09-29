@@ -1,4 +1,4 @@
-// TOSFIXPLUS: declarations shared by the source files.
+// TSFix+: declarations shared by the source files.
 //
 //   main.cpp         loads the real Direct3D 9, hooks the device and passes every call on
 //   recorder.cpp     records each game frame's drawing commands and can replay them
@@ -21,7 +21,7 @@
 
 // ---------------------------------------------------------------- main.cpp
 
-void log(const char* fmt, ...);   // appends to tosfixplus.log next to the DLL
+void log(const char* fmt, ...);   // appends to tsfixplus.log next to the DLL
 
 // One lock guards everything shared: the game creates its device as multithreaded and loads
 // resources on other threads.
@@ -31,7 +31,7 @@ struct Locked {
     ~Locked() { LeaveCriticalSection(&gLock); }
 };
 
-// The real (unhooked) device methods TOSFIXPLUS calls.
+// The real (unhooked) device methods TSFix+ calls.
 #define REAL_DEVICE_METHODS(X)                                                                      \
     X(Present) X(PresentEx) X(Reset) X(ResetEx) X(CreateVertexShader) X(CreateVertexBuffer)          \
     X(CreateIndexBuffer) X(SetRenderTarget) X(SetDepthStencilSurface) X(Clear) X(SetViewport)       \

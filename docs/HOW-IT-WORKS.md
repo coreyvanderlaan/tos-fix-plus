@@ -1,4 +1,4 @@
-# How TOSFIXPLUS works
+# How TSFix+ works
 
 This document explains the design for anyone who wants to understand or change the code. It
 assumes some familiarity with Direct3D 9 (devices, shaders, vertex buffers, Present).
@@ -10,7 +10,7 @@ and TSFix limits it to 30 frames a second. Raising the limit makes the whole gam
 battles, walking and cutscenes all go at double speed at 60. The game's logic can't simply run
 faster.
 
-So TOSFIXPLUS leaves the logic at 30 and adds frames **between** the game's own: for every
+So TSFix+ leaves the logic at 30 and adds frames **between** the game's own: for every
 refresh of the display, it redraws the game's latest frame with each object moved partway back
 towards where it was in the frame before. This is interpolation, done with the game's own draw
 calls, not by processing images.
@@ -18,14 +18,14 @@ calls, not by processing images.
 ## The pipeline
 
 ```
-TOS.exe ──▶ Special K (d3d9.dll) ──▶ tosfixplus.dll ──▶ dgVoodoo.dll or Windows' d3d9.dll
+TOS.exe ──▶ Special K (d3d9.dll) ──▶ tsfixplus.dll ──▶ dgVoodoo.dll or Windows' d3d9.dll
                                         │
                                         ├─ main.cpp         hooks the device's methods
                                         ├─ recorder.cpp     records each frame, can redraw it
                                         └─ interpolate.cpp  pairs, blends, paces
 ```
 
-Special K loads `tosfixplus.dll` as its Direct3D 9 "proxy". TOSFIXPLUS loads the real Direct3D 9,
+Special K loads `tsfixplus.dll` as its Direct3D 9 "proxy". TSFix+ loads the real Direct3D 9,
 lets the game create its device, and replaces entries in the device's method table (vtable) with
 its own functions. Each of those tells the recorder what the game did and then calls the real
 method, so the game draws exactly as before. Present is the exception: it goes to
@@ -38,7 +38,7 @@ in a `Frame`, with its data (constants, rectangles, and so on) in the frame's by
 details make a recording complete:
 
 - **The starting state.** The game creates its device as a *pure* device, which can't be asked
-  for its current state. So TOSFIXPLUS keeps its own copy of everything the game has set
+  for its current state. So TSFix+ keeps its own copy of everything the game has set
   (`DeviceState`), and each frame starts with a snapshot of it.
 - **Buffer contents.** The game rewrites some vertex buffers during a frame (characters, which it
   poses on the CPU, and a shared buffer for sprites and 2D). Every write to a dynamic buffer is
@@ -54,14 +54,14 @@ render target with a solid colour before redrawing and comparing every pixel.)
 
 ## Pairing draws between frames (interpolate.cpp, buildPlan)
 
-To blend an object, TOSFIXPLUS has to find the same object in the previous frame. There are no
+To blend an object, TSFix+ has to find the same object in the previous frame. There are no
 object names at this level, only draw calls, so a draw's identity is built from what it uses: the
 render target, shaders, buffers and their offsets, the draw's arguments and its first texture
 (`DrawInfo::key`). Draws with the same identity are paired in order. For the world's 3D objects
 this pairs everything.
 
 The game's vertex shaders kept their constant tables, variable names included, which tells
-TOSFIXPLUS what each shader's constants are (`noteVertexShader` in `main.cpp`):
+TSFix+ what each shader's constants are (`noteVertexShader` in `main.cpp`):
 
 | Constants | Name | Meaning |
 |---|---|---|
@@ -110,10 +110,10 @@ teleported and isn't blended.
   particle, a burst) isn't moved.
 - An indexed sprite draw's `MinIndex`/`NumVertices` arguments don't describe the vertices it
   uses (they say 0-2 while the index list points thousands further on), so the vertices are
-  found from the draw's index list. Index buffers can't be read back from the GPU, so TOSFIXPLUS
+  found from the draw's index list. Index buffers can't be read back from the GPU, so TSFix+
   keeps a copy of each as the game writes it (`gIndexCopies`).
 - The shared buffer is written with `D3DLOCK_NOOVERWRITE`, a promise not to change data the GPU
-  may still be reading. Moved sprite vertices therefore go into TOSFIXPLUS's own buffer, renewed
+  may still be reading. Moved sprite vertices therefore go into TSFix+'s own buffer, renewed
   for each in-between frame, and the draw reads from there.
 
 **Never blended**: anything drawn with a flat (orthographic) projection, which is the HUD, menus
@@ -123,14 +123,14 @@ when most objects' matrices change completely at once.
 
 ## Pacing (interpolate.cpp, presentFrame)
 
-TOSFIXPLUS decides when the game gets to run, which makes it the frame limiter:
+TSFix+ decides when the game gets to run, which makes it the frame limiter:
 
 1. When the game presents frame N, a schedule advances by exactly 1/30 s. After a stall (a load,
    a hitch) the schedule restarts.
 2. The desktop compositor, which puts images on screen in windowed and borderless modes, reports
    when the last refresh happened and the time between refreshes. An image presented between two
    refreshes appears at the second, and a later Present before then would replace it. So
-   TOSFIXPLUS draws each in-between frame just after the previous one's refresh has passed, for
+   TSFix+ draws each in-between frame just after the previous one's refresh has passed, for
    the next refresh, with `alpha` taken from that refresh's time: one frame per refresh, on one
    continuous timeline across game frames.
 3. It stops early enough for the game to produce frame N+1 on time, using a running estimate of
@@ -153,6 +153,6 @@ compositor's timing is used.
   `Sprite::uvLo` and `uvHi` from `spriteOf()`.
 - **Something blends that shouldn't.** Check how its draws are paired (`buildPlan`) and whether
   a guard applies: `flat()`, the size tests, `matrixChange()`.
-- **Testing a change**: compare with F9, and watch `tosfixplus.log`. Its line every minute shows
+- **Testing a change**: compare with F9, and watch `tsfixplus.log`. Its line every minute shows
   game frames per second (30.00 when pacing is right) and frames shown per second (close to the
   refresh rate when blending is running).

@@ -1,4 +1,4 @@
-// TOSFIXPLUS: frame recorder and replay.
+// TSFix+: frame recorder and replay.
 //
 // Every call the game makes to change device state or draw is recorded, frame by frame, together
 // with the full device state at the frame's start and a copy of everything it writes into

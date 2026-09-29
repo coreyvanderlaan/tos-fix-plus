@@ -1,23 +1,23 @@
-TOSFIXPLUS - installation
+TSFix+ - installation
 =========================
 
 Smooth motion at your display's full refresh rate for Tales of Symphonia (Steam, PC).
 Requires TSFix (https://wiki.special-k.info/SpecialK/Custom/TSFix) to be installed and working.
 
-1. Copy tosfixplus.dll and tosfixplus.ini into the game folder, next to TOS.exe.
+1. Copy tsfixplus.dll and tsfixplus.ini into the game folder, next to TOS.exe.
    Not sure where that is? In Steam, right-click Tales of Symphonia > Manage > Browse local files.
 
 2. In the same folder, open d3d9.ini with Notepad.
    - If it has a section called [Import.dgvoodoo], change the line
          Filename=dgVoodoo.dll
      in that section to
-         Filename=tosfixplus.dll
+         Filename=tsfixplus.dll
    - If it has no [Import.dgvoodoo] section, add these lines at the very top of the file:
-         [Import.TOSFIXPLUS]
+         [Import.TSFixPlus]
          Architecture=Win32
          Role=d3d9
          When=Proxy
-         Filename=tosfixplus.dll
+         Filename=tsfixplus.dll
    Save the file.
 
 3. In the same folder, open tsfix.ini with Notepad. Under [TSFix.Window], change
@@ -28,17 +28,17 @@ Requires TSFix (https://wiki.special-k.info/SpecialK/Custom/TSFix) to be install
          BackgroundFPS=1000.0
    Save the file.
 
-   Important: only do step 3 together with step 2. Without TOSFIXPLUS, this setting makes the
+   Important: only do step 3 together with step 2. Without TSFix+, this setting makes the
    whole game run too fast.
 
-4. Start the game. Press F9 at any time to turn TOSFIXPLUS on and off.
-   A file called tosfixplus.log appears in the game folder; it's useful if you report a problem.
+4. Start the game. Press F9 at any time to turn TSFix+ on and off.
+   A file called tsfixplus.log appears in the game folder; it's useful if you report a problem.
 
-Settings: tosfixplus.ini has one setting, MaxFPS. 0 (the default) shows as many frames as your
+Settings: tsfixplus.ini has one setting, MaxFPS. 0 (the default) shows as many frames as your
 display refreshes. A lower number, such as 60 or 90, uses less GPU power.
 
-To uninstall: delete tosfixplus.dll, tosfixplus.ini and tosfixplus.log, change d3d9.ini back
-(Filename=dgVoodoo.dll, or delete the [Import.TOSFIXPLUS] section), and set ForegroundFPS and
+To uninstall: delete tsfixplus.dll, tsfixplus.ini and tsfixplus.log, change d3d9.ini back
+(Filename=dgVoodoo.dll, or delete the [Import.TSFixPlus] section), and set ForegroundFPS and
 BackgroundFPS in tsfix.ini back to 30.0.
 
-More information, and how to report a problem: https://github.com/coreyvanderlaan/tos-fix-plus
+More information, and how to report a problem: https://github.com/coreyvanderlaan/ts-fix-plus

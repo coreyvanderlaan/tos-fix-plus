@@ -1,4 +1,4 @@
-// TOSFIXPLUS: in-between frames and pacing.
+// TSFix+: in-between frames and pacing.
 //
 // The game updates its world 30 times a second. After it finishes frame N, this file:
 //   1. pairs frame N's draws with frame N-1's (see buildPlan);
@@ -6,7 +6,7 @@
 //      between where it was in N-1 and where it is in N, according to the moment that refresh
 //      reaches the screen;
 //   3. hands control back to the game just in time for it to produce frame N+1 on schedule, so
-//      the game keeps running at exactly 30 updates a second (TOSFIXPLUS is the frame limiter).
+//      the game keeps running at exactly 30 updates a second (TSFix+ is the frame limiter).
 //
 // What moves between frames, and how it is blended:
 //   - Objects placed by matrices (scenery, the camera): the shader constants c0-c11 hold each
@@ -34,10 +34,10 @@ static const double MARGIN_MS = 1.0;                  // extra time left for the
 
 static bool gEnabled = true;       // F9
 static bool gF9WasDown;
-static double gMaxInterval = 0;    // [TOSFIXPLUS] MaxFPS as a minimum time between frames, 0 = none
+static double gMaxInterval = 0;    // [TSFixPlus] MaxFPS as a minimum time between frames, 0 = none
 
 void configureInterpolation(const char* ini) {
-    int maxFps = GetPrivateProfileIntA("TOSFIXPLUS", "MaxFPS", 0, ini);
+    int maxFps = GetPrivateProfileIntA("TSFixPlus", "MaxFPS", 0, ini);
     gMaxInterval = maxFps > 0 ? 1000.0 / maxFps : 0;
     timeBeginPeriod(1);   // 1 ms sleep resolution for pacing
     log("MaxFPS %d (%s)", maxFps, maxFps > 0 ? "cap" : "the display's refresh rate");
@@ -306,7 +306,7 @@ struct Plan : ReplayHooks {
 
     // A sprite that moves with what it follows (the marker, shadows). Its vertices live in the
     // game's shared buffer, which the game writes with NOOVERWRITE: a promise not to touch data
-    // the GPU may still be reading. So the moved copy goes into TOSFIXPLUS's own buffer, renewed
+    // the GPU may still be reading. So the moved copy goes into TSFix+'s own buffer, renewed
     // for every in-between frame, at the same byte position, and the draw reads from there.
     struct Move { uint32_t start, bytes; const uint8_t* vertices; float by[3]; VertexLayout L;
                   IDirect3DVertexBuffer9* sharedBuffer; UINT offset, stride; };
@@ -641,7 +641,7 @@ HRESULT presentFrame(IDirect3DDevice9Ex* d, HRESULT (*present)(void*), void* con
     // F9 turns blending on and off (not with Alt, Ctrl or Shift held: NVIDIA's recorder uses Alt+F9).
     bool modifiers = (GetAsyncKeyState(VK_MENU) | GetAsyncKeyState(VK_CONTROL) | GetAsyncKeyState(VK_SHIFT)) & 0x8000;
     bool f9 = (GetAsyncKeyState(VK_F9) & 0x8000) && !modifiers;
-    if (f9 && !gF9WasDown) { gEnabled = !gEnabled; log("TOSFIXPLUS %s", gEnabled ? "on" : "off"); }
+    if (f9 && !gF9WasDown) { gEnabled = !gEnabled; log("TSFix+ %s", gEnabled ? "on" : "off"); }
     gF9WasDown = f9;
 
     // The schedule: one game frame per 1/30 s, restarted after a stall (loading, a hitch).
