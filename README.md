@@ -20,8 +20,8 @@ Press **F9** in game to turn TSFix+ on and off and compare.
 
 - Tales of Symphonia, the Steam version for Windows.
 - **TSFix 0.10.5**, installed and working. It includes Special K, which loads TSFix+.
-- The game in a window or TSFix's borderless mode (TSFix's default). Exclusive fullscreen hasn't
-  been tested.
+- The game in borderless fullscreen (TSFix's default: it fills the screen) or a window. Exclusive
+  fullscreen hasn't been tested.
 - Windows 10 or 11.
 - dgVoodoo is optional: if `dgVoodoo.dll` is next to the game, TSFix+ uses it; otherwise it
   uses Windows' own Direct3D 9.
@@ -110,7 +110,7 @@ Camera cuts are detected and never blended across.
 ## Known limitations
 
 - Tested on the first hours of the game, at 144 Hz on a G-Sync monitor (G-Sync on), in
-  borderless mode. Exclusive fullscreen, FreeSync and 60 Hz displays haven't been tested.
+  borderless fullscreen. Exclusive fullscreen, FreeSync and 60 Hz displays haven't been tested.
 - About 33 ms of extra display latency, as explained above.
 
 ## Reporting a problem
