@@ -1,13 +1,40 @@
 TSFix+ - installation
-=========================
+=====================
 
 Smooth motion at your display's full refresh rate for Tales of Symphonia (Steam, PC).
 Requires TSFix (https://wiki.special-k.info/SpecialK/Custom/TSFix) to be installed and working.
 
-1. Copy tsfixplus.dll and tsfixplus.ini into the game folder, next to TOS.exe.
-   Not sure where that is? In Steam, right-click Tales of Symphonia > Manage > Browse local files.
+Installing
+----------
+1. Open the game folder. In Steam, right-click Tales of Symphonia > Manage > Browse local files.
+2. Unzip everything from this zip into that folder (next to TOS.exe).
+3. Make sure the game is closed, then double-click install.bat.
+4. Start the game. Press F9 at any time to turn TSFix+ on and off.
 
-2. In the same folder, open d3d9.ini with Notepad.
+install.bat makes two small changes, and saves your originals as d3d9.ini.before-tsfixplus and
+tsfix.ini.before-tsfixplus first:
+  - d3d9.ini: tells Special K (part of TSFix) to load tsfixplus.dll.
+  - tsfix.ini: raises TSFix's frame limit to 1000. TSFix+ keeps the game at 30 updates a second
+    itself; TSFix's own limiter just has to stay out of its way.
+
+A file called tsfixplus.log appears in the game folder when the game runs; it's useful if you
+report a problem.
+
+Uninstalling
+------------
+Close the game and double-click uninstall.bat. It undoes both changes and deletes tsfixplus.dll,
+tsfixplus.ini and tsfixplus.log. You can then delete install.bat, uninstall.bat and
+tsfixplus-setup.ps1.
+
+Settings
+--------
+tsfixplus.ini has one setting, MaxFPS. 0 (the default) shows as many frames as your display
+refreshes. A lower number, such as 60 or 90, uses less GPU power.
+
+Installing by hand (instead of install.bat)
+-------------------------------------------
+1. Copy tsfixplus.dll and tsfixplus.ini into the game folder.
+2. Open d3d9.ini with Notepad.
    - If it has a section called [Import.dgvoodoo], change the line
          Filename=dgVoodoo.dll
      in that section to
@@ -19,26 +46,8 @@ Requires TSFix (https://wiki.special-k.info/SpecialK/Custom/TSFix) to be install
          When=Proxy
          Filename=tsfixplus.dll
    Save the file.
-
-3. In the same folder, open tsfix.ini with Notepad. Under [TSFix.Window], change
-         ForegroundFPS=30.0
-         BackgroundFPS=30.0
-   to
-         ForegroundFPS=1000.0
-         BackgroundFPS=1000.0
-   Save the file.
-
-   Important: only do step 3 together with step 2. Without TSFix+, this setting makes the
-   whole game run too fast.
-
-4. Start the game. Press F9 at any time to turn TSFix+ on and off.
-   A file called tsfixplus.log appears in the game folder; it's useful if you report a problem.
-
-Settings: tsfixplus.ini has one setting, MaxFPS. 0 (the default) shows as many frames as your
-display refreshes. A lower number, such as 60 or 90, uses less GPU power.
-
-To uninstall: delete tsfixplus.dll, tsfixplus.ini and tsfixplus.log, change d3d9.ini back
-(Filename=dgVoodoo.dll, or delete the [Import.TSFixPlus] section), and set ForegroundFPS and
-BackgroundFPS in tsfix.ini back to 30.0.
+3. Open tsfix.ini with Notepad. Under [TSFix.Window], change ForegroundFPS=30.0 and
+   BackgroundFPS=30.0 to 1000.0, and save it.
+   Only do this together with step 2: without TSFix+, this setting makes the game run too fast.
 
 More information, and how to report a problem: https://github.com/coreyvanderlaan/ts-fix-plus

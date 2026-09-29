@@ -1,5 +1,7 @@
 @echo off
-rem Builds TSFix+ and packs the files players need into release\tsfixplus-<version>.zip.
+rem Builds TSFix+ and packs the files players need into release\tsfixplus-<version>.zip: the DLL
+rem and its settings, the installer (install.bat, uninstall.bat, tsfixplus-setup.ps1), INSTALL.txt
+rem and the licence.
 rem Usage: package.bat 1.0.0
 setlocal
 cd /d "%~dp0"
@@ -15,6 +17,9 @@ mkdir "%STAGE%" || exit /b 1
 copy /y build\tsfixplus.dll "%STAGE%\" >nul || exit /b 1
 copy /y tsfixplus.ini "%STAGE%\" >nul || exit /b 1
 copy /y INSTALL.txt "%STAGE%\" >nul || exit /b 1
+copy /y setup\install.bat "%STAGE%\" >nul || exit /b 1
+copy /y setup\uninstall.bat "%STAGE%\" >nul || exit /b 1
+copy /y setup\tsfixplus-setup.ps1 "%STAGE%\" >nul || exit /b 1
 copy /y LICENSE "%STAGE%\LICENSE.txt" >nul || exit /b 1
 
 if exist "release\tsfixplus-%~1.zip" del "release\tsfixplus-%~1.zip"

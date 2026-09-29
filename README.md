@@ -38,15 +38,33 @@ Press **F9** in game to turn TSFix+ on and off and compare.
 > Don't use the green **Code → Download ZIP** button at the top of this page: that downloads
 > the source code, not the ready-to-use mod.
 
-The zip contains `tsfixplus.dll`, `tsfixplus.ini`, `INSTALL.txt` (these instructions, for
-Notepad) and the licence.
+The zip contains `tsfixplus.dll` and `tsfixplus.ini` (the mod and its setting), `install.bat`,
+`uninstall.bat` and `tsfixplus-setup.ps1` (the installer), `INSTALL.txt` (these instructions,
+for Notepad) and the licence.
 
 ### 2. Install
 
 1. Open the game folder: in Steam, right-click **Tales of Symphonia**, then **Manage → Browse
    local files**. It's the folder with `TOS.exe` in it.
-2. Copy **`tsfixplus.dll`** and **`tsfixplus.ini`** from the zip into that folder.
-3. Tell Special K to load TSFix+. Open **`d3d9.ini`** in the game folder with Notepad:
+2. Unzip **everything** from the zip into that folder.
+3. Make sure the game is closed, then double-click **`install.bat`**.
+
+`install.bat` makes two small changes to TSFix's settings files, after saving your originals as
+`d3d9.ini.before-tsfixplus` and `tsfix.ini.before-tsfixplus`:
+
+- **`d3d9.ini`**: tells Special K (part of TSFix) to load `tsfixplus.dll`.
+- **`tsfix.ini`**: raises TSFix's frame limit to 1000. TSFix+ keeps the game at exactly 30
+  updates a second itself, and TSFix's own limiter has to stay out of its way: at 60 it still
+  holds a frame back now and then, which shows as a small hitch.
+
+It changes nothing else in either file, and stops without changing anything if the game is
+running, TSFix isn't installed, or it isn't in the game folder.
+
+<details>
+<summary><b>Installing by hand instead</b></summary>
+
+1. Copy **`tsfixplus.dll`** and **`tsfixplus.ini`** into the game folder.
+2. Tell Special K to load TSFix+. Open **`d3d9.ini`** in the game folder with Notepad:
    - If it has an `[Import.dgvoodoo]` section, change that section's `Filename=dgVoodoo.dll` to
      `Filename=tsfixplus.dll`. (TSFix+ loads dgVoodoo itself.)
    - Otherwise, add this section at the top of the file:
@@ -58,18 +76,15 @@ Notepad) and the licence.
      Filename=tsfixplus.dll
      ```
    Save the file.
-4. Take TSFix's frame limit out of the way. Open **`tsfix.ini`** and, under `[TSFix.Window]`,
-   change the two `30.0` values to
+3. Open **`tsfix.ini`** and, under `[TSFix.Window]`, change the two `30.0` values to
    ```ini
    ForegroundFPS=1000.0
    BackgroundFPS=1000.0
    ```
-   and save the file. TSFix+ keeps the game at exactly 30 updates a second itself. TSFix's
-   own limiter has to stay out of its way: at 60 it still holds a frame back now and then, which
-   shows as a small hitch.
+   and save the file. Only do this together with step 2: without TSFix+, a limit above 30 makes
+   the whole game run too fast.
 
-> **Do step 4 only together with step 3.** Without TSFix+, a limit above 30 makes the whole
-> game run too fast.
+</details>
 
 ### 3. Check it works
 
@@ -89,10 +104,13 @@ first lines say TSFix+ started and which Direct3D 9 it is using.
 
 ## Uninstalling
 
-1. Delete `tsfixplus.dll`, `tsfixplus.ini` and `tsfixplus.log` from the game folder.
-2. In `d3d9.ini`, change `Filename=tsfixplus.dll` back to `Filename=dgVoodoo.dll`, or delete the
-   `[Import.TSFixPlus]` section if you added it.
-3. In `tsfix.ini`, set `ForegroundFPS` and `BackgroundFPS` back to `30.0`.
+Close the game and double-click **`uninstall.bat`** in the game folder. It undoes both changes
+and deletes `tsfixplus.dll`, `tsfixplus.ini` and `tsfixplus.log`; you can then delete
+`install.bat`, `uninstall.bat` and `tsfixplus-setup.ps1`.
+
+By hand: delete those three files, change `Filename=tsfixplus.dll` in `d3d9.ini` back to
+`Filename=dgVoodoo.dll` (or delete the `[Import.TSFixPlus]` section), and set `ForegroundFPS`
+and `BackgroundFPS` in `tsfix.ini` back to `30.0`.
 
 ## What's smoothed
 
@@ -151,6 +169,7 @@ works. It is the place to start before changing anything.
 | `src/interpolate.cpp` | Pairs objects between frames, blends them, and paces the game |
 | `src/common.h` | Declarations shared by the files above |
 | `src/tsfixplus.def` | The DLL's exported functions |
+| `setup/` | `install.bat`, `uninstall.bat` and the script behind them, `tsfixplus-setup.ps1` |
 | `tsfixplus.ini` | The user setting |
 
 ## Credits
