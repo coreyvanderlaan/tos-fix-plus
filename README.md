@@ -109,8 +109,8 @@ Camera cuts are detected and never blended across.
 
 ## Known limitations
 
-- Tested on the first hours of the game, at 144 Hz on a G-Sync monitor (G-Sync on), in
-  borderless fullscreen. Exclusive fullscreen, FreeSync and 60 Hz displays haven't been tested.
+- Tested on the first hours of the game at 144 Hz, and briefly at 60 Hz, on a G-Sync monitor
+  (G-Sync on), in borderless fullscreen. Exclusive fullscreen and FreeSync haven't been tested.
 - About 33 ms of extra display latency, as explained above.
 
 ## Reporting a problem
