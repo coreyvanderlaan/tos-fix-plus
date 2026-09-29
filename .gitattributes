@@ -1,1 +1,3 @@
 *.bat text eol=crlf
+INSTALL.txt text eol=crlf
+*.ini text eol=crlf

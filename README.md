@@ -28,9 +28,24 @@ Press **F9** in game to turn TOSFIXPLUS on and off and compare.
 
 ## Installing
 
-1. Download `tosfixplus.zip` from the [Releases](../../releases) page and unzip it.
-2. Copy **`tosfixplus.dll`** and **`tosfixplus.ini`** into the game folder, next to `TOS.exe`
-   (by default `C:\Program Files (x86)\Steam\steamapps\common\Tales of Symphonia`).
+### 1. Download
+
+1. Go to the **[latest release](../../releases/latest)**. (You can also find it under
+   **Releases** on the right-hand side of this page.)
+2. Under **Assets**, click **`tosfixplus-<version>.zip`** to download it.
+3. Unzip it (right-click the file, then **Extract All...**).
+
+> Don't use the green **Code → Download ZIP** button at the top of this page: that downloads
+> the source code, not the ready-to-use mod.
+
+The zip contains `tosfixplus.dll`, `tosfixplus.ini`, `INSTALL.txt` (these instructions, for
+Notepad) and the licence.
+
+### 2. Install
+
+1. Open the game folder: in Steam, right-click **Tales of Symphonia**, then **Manage → Browse
+   local files**. It's the folder with `TOS.exe` in it.
+2. Copy **`tosfixplus.dll`** and **`tosfixplus.ini`** from the zip into that folder.
 3. Tell Special K to load TOSFIXPLUS. Open **`d3d9.ini`** in the game folder with Notepad:
    - If it has an `[Import.dgvoodoo]` section, change that section's `Filename=dgVoodoo.dll` to
      `Filename=tosfixplus.dll`. (TOSFIXPLUS loads dgVoodoo itself.)
@@ -42,20 +57,25 @@ Press **F9** in game to turn TOSFIXPLUS on and off and compare.
      When=Proxy
      Filename=tosfixplus.dll
      ```
-4. Take TSFix's frame limit out of the way. Open **`tsfix.ini`** and, under `[TSFix.Window]`, set
+   Save the file.
+4. Take TSFix's frame limit out of the way. Open **`tsfix.ini`** and, under `[TSFix.Window]`,
+   change the two `30.0` values to
    ```ini
    ForegroundFPS=1000.0
    BackgroundFPS=1000.0
    ```
-   TOSFIXPLUS keeps the game at exactly 30 updates a second itself. TSFix's own limiter has to
-   stay out of its way: at 60 it still holds a frame back now and then, which shows as a small
-   hitch.
+   and save the file. TOSFIXPLUS keeps the game at exactly 30 updates a second itself. TSFix's
+   own limiter has to stay out of its way: at 60 it still holds a frame back now and then, which
+   shows as a small hitch.
 
 > **Do step 4 only together with step 3.** Without TOSFIXPLUS, a limit above 30 makes the whole
 > game run too fast.
 
-Start the game. A file `tosfixplus.log` appears in the game folder; its first lines say
-TOSFIXPLUS started and which Direct3D 9 it is using.
+### 3. Check it works
+
+Start the game and press **F9** a few times while walking around: motion switches between
+TOSFIXPLUS and the original 30 fps. A file `tosfixplus.log` also appears in the game folder; its
+first lines say TOSFIXPLUS started and which Direct3D 9 it is using.
 
 ## Using it
 
@@ -113,6 +133,10 @@ TOSFIXPLUS is plain C++ with no dependencies beyond the Windows SDK.
 2. Run **`build.bat`**. It builds `build\tosfixplus.dll` (32-bit, like the game) and copies
    `tosfixplus.ini` next to it.
 3. Install the files from `build\` as described above.
+
+**`package.bat <version>`** (for example `package.bat 1.0.0`) builds and packs the release zip,
+`release\tosfixplus-<version>.zip`, with the DLL, the settings file, `INSTALL.txt` and the
+licence. That zip is what gets attached to a GitHub release.
 
 ## How it works, and changing it
 

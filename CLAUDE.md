@@ -10,4 +10,5 @@ this repo is only what ships.
   `src/` should stay equivalent to tos-60fps's `src/`.
 - Documentation is for players and contributors, not for Corey: README.md (install, use,
   build), docs/HOW-IT-WORKS.md (design).
-- Build with `build.bat`. Publishing (making the repo public, releases) needs Corey's go-ahead.
+- Build with `build.bat`; `package.bat <version>` makes the release zip (DLL, ini, INSTALL.txt,
+  LICENSE). INSTALL.txt must stay in step with the README's install section. Publishing (making the repo public, releases) needs Corey's go-ahead.
