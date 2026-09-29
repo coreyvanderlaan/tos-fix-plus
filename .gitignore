@@ -1,0 +1,15 @@
+# Build output
+build/
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.dll
+
+# Logs and editor files
+*.log
+.vs/
+.vscode/
+Thumbs.db
+desktop.ini
