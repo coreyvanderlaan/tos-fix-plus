@@ -6,7 +6,7 @@ assumes some familiarity with Direct3D 9 (devices, shaders, vertex buffers, Pres
 ## The problem
 
 Tales of Symphonia (PC, 2016) advances its world exactly one step each time it presents a frame,
-and TSFix limits it to 30 frames a second. Raising the limit makes the whole game run faster:
+and limits itself to 30 frames a second. Raising the limit makes the whole game run faster:
 battles, walking and cutscenes all go at double speed at 60. The game's logic can't simply run
 faster.
 
@@ -18,18 +18,68 @@ calls, not by processing images.
 ## The pipeline
 
 ```
-TOS.exe ──▶ Special K (d3d9.dll) ──▶ tsfixplus.dll ──▶ dgVoodoo.dll or Windows' d3d9.dll
-                                        │
-                                        ├─ main.cpp         hooks the device's methods
-                                        ├─ recorder.cpp     records each frame, can redraw it
-                                        └─ interpolate.cpp  pairs, blends, paces
+TOS.exe ──▶ d3d9.dll (TSFix+) ──▶ the system's d3d9.dll
+                │
+                ├─ main.cpp         hooks the device's methods
+                ├─ recorder.cpp     records each frame, can redraw it
+                ├─ interpolate.cpp  pairs, blends, paces
+                ├─ standalone.cpp   the game fixes TSFix used to provide
+                └─ textures.cpp     TSFix-format texture packs
 ```
 
-Special K loads `tsfixplus.dll` as its Direct3D 9 "proxy". TSFix+ loads the real Direct3D 9,
-lets the game create its device, and replaces entries in the device's method table (vtable) with
-its own functions. Each of those tells the recorder what the game did and then calls the real
-method, so the game draws exactly as before. Present is the exception: it goes to
-`presentFrame()` in `interpolate.cpp`.
+The game loads `d3d9.dll` from its own folder before Windows' one, so TSFix+ is loaded as the
+game's Direct3D 9. It loads the real one, lets the game create its device, and replaces entries in
+the device's method table (vtable) with its own functions. Each of those tells the recorder what
+the game did and then calls the real method, so the game draws exactly as before. Present is the
+exception: it goes to `presentFrame()` in `interpolate.cpp`.
+
+TSFix+ can also still be loaded by Special K as its Direct3D 9 "proxy", with TSFix, as in
+version 0.9 (on the game's 2016 launch version, which TSFix needs). Then TSFix provides the game
+fixes and texture packs, and TSFix+ only smooths: `standalone.cpp` and `textures.cpp` do nothing
+when `tsfix.dll` is loaded.
+
+## The game fixes (standalone.cpp)
+
+TSFix (by Kaldaien) found and fixed what the PC port gets wrong. TSFix itself no longer works on
+the current Steam version: it hooks the game at fixed addresses from the launch version. TSFix+
+fixes the problems the current version still has, finding each piece of the game's code by a
+byte pattern that must occur exactly once, and leaving it alone if it doesn't:
+
+- **The game's frame limiter** (a busy-wait until 1/30 s has passed; TSFix's pattern) returns at
+  once. TSFix+ paces the game itself (below), and two limiters drift against each other.
+- **The game's clock** counts 60 Hz ticks, with a rate in ticks per frame. The function that
+  queues a rate change is found by a pattern, and the rate is kept at 2, as TSFix does.
+- **The 60 Hz timer.** The game calls `CreateTimerQueueTimer` with `WT_EXECUTEONLYONCE` and a
+  16 ms period; with that flag the period must be 0. The period is set to 0 (TSFix does the
+  same). Left as it is, the videos, which run on this timer, stutter and break up into black
+  blocks, more and more as they play.
+- **Videos and the GPU.** The video player writes each video frame into its texture while the GPU
+  may still be drawing the previous one from it. While nothing is blended (a video), each game
+  Present waits for the GPU to finish (an event query).
+- **The Zelos title achievement** is requested as `TROPHY_ID_ZELOSZ_TITLE_COMPLET`; the missing
+  `E` is added (found by TSFix).
+- **Window and focus.** Fullscreen is turned into a borderless window over the monitor (in
+  exclusive fullscreen the game minimises on Alt+Tab and stops responding); windowed mode gets a
+  borderless window centred on the monitor. The game never learns it lost focus (its window's
+  activation messages are held back and user32's `GetForegroundWindow`, `GetFocus` and
+  `GetActiveWindow` report its window), so it keeps running in the background. Its window is
+  never "always on top" (it became so by being placed behind an always-on-top overlay window),
+  so Alt+Tab shows the other window. DirectInput devices are set to non-exclusive, and the cursor
+  is never confined to the window.
+
+Windows functions are hooked by rewriting their first five bytes into a jump (the standard
+hot-patch prologue, a jump stub into another DLL, or an existing hook such as the Steam overlay's,
+which is chained). The game's import table is encrypted, so hooking it isn't possible.
+
+## Texture packs (textures.cpp)
+
+TSFix loads texture replacements from `TSFix_Res\inject`: loose `<crc32>.dds` files and `.7z`
+archives of them, named by the CRC-32 of the texture file the game loads. TSFix+ reads the same
+packs: `D3DXCreateTextureFromFileInMemoryEx` is hooked, the game gets its own texture at once, and
+a worker thread decompresses the replacement (with the LZMA SDK's 7z decoder) and creates it. From
+then on SetTexture draws with the replacement. The recorder keeps the game's own texture, so draws
+pair between frames the same way before and after a replacement arrives (with the replacement in
+the pairing key, objects jittered while textures streamed in).
 
 ## Recording a frame (recorder.cpp)
 
@@ -107,7 +157,9 @@ teleported and isn't blended.
 
   Rings and shapes are paired with the nearest shape of the previous frame and all their
   triangles move together. A piece or shape that moved further than its own size (a new
-  particle, a burst) isn't moved.
+  particle, a burst) isn't moved. For "everything else", only shapes of similar size (within 2x)
+  are paired, closer than the smaller one's size: a spell's ground circle that had just appeared
+  otherwise paired with a smaller effect of the same kind above the caster's head.
 - An indexed sprite draw's `MinIndex`/`NumVertices` arguments don't describe the vertices it
   uses (they say 0-2 while the index list points thousands further on), so the vertices are
   found from the draw's index list. Index buffers can't be read back from the GPU, so TSFix+
@@ -138,10 +190,11 @@ TSFix+ decides when the game gets to run, which makes it the frame limiter:
    towards it), then waits until the schedule says the game may continue.
 
 With F9 off, the game's own frame is presented as it is and the same pacing applies, so the game
-speed never changes. TSFix's own limiter must be set far above 30 (the README says 1000): at 60,
-its ticks drift against this schedule and hold back a frame about every 20 game frames, longer
-than a refresh at 144 Hz. Direct3D 9's Present doesn't wait for the display here, which is why the
-compositor's timing is used.
+speed never changes. The game's own limiter is switched off (above); with TSFix, TSFix's limiter
+must be set far above 30 (1000): at 60, its ticks drift against this schedule and hold back a
+frame about every 20 game frames, longer than a refresh at 144 Hz. Direct3D 9's Present doesn't
+wait for the display here, which is why the compositor's timing is used. Where the compositor
+doesn't report its timing (possibly under Proton), the display's refresh rate is used instead.
 
 ## Changing things
 

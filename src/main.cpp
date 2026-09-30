@@ -1,10 +1,11 @@
 // TSFix+: entry point and Direct3D 9 hooks.
 //
-// tsfixplus.dll is loaded in place of Direct3D 9: Special K (installed with TSFix) loads it as
-// its "d3d9 proxy". It loads the real Direct3D 9 (dgVoodoo.dll next to it if present, otherwise
-// Windows' own d3d9.dll), hands the game the real device, and replaces some of the device's
-// methods (vtable entries) with the hooks below. Each hook tells recorder.cpp about the call and
-// passes it on unchanged. Present goes to interpolate.cpp, which shows the in-between frames.
+// TSFix+ is the game's d3d9.dll: the game loads it from its own folder instead of Windows'
+// Direct3D 9. It loads the real Direct3D 9 (dgVoodoo.dll next to it if present, otherwise the
+// system's d3d9.dll), hands the game the real device, and replaces some of the device's methods
+// (vtable entries) with the hooks below. Each hook tells recorder.cpp about the call and passes
+// it on. Present goes to interpolate.cpp, which shows the in-between frames. (It also still works
+// as Special K's "d3d9 proxy" with TSFix, as in version 0.9.)
 #include "common.h"
 #include <cstdarg>
 #include <cstddef>
@@ -147,20 +148,26 @@ typedef IDirect3DDevice9Ex Device;
 #define HOOK static HRESULT STDMETHODCALLTYPE
 
 HOOK hookPresent(Device* d, const RECT* from, const RECT* to, HWND window, const RGNDATA* region) {
-    { Locked lock; endRecordedFrame(); }
+    { Locked lock; standaloneFrame((IDirect3DDevice9*)d); endRecordedFrame(); }
     return presentFrame(d, [&] { return R.Present(d, from, to, window, region); });
 }
 HOOK hookPresentEx(Device* d, const RECT* from, const RECT* to, HWND window, const RGNDATA* region, DWORD flags) {
-    { Locked lock; endRecordedFrame(); }
+    { Locked lock; standaloneFrame((IDirect3DDevice9*)d); endRecordedFrame(); }
     return presentFrame(d, [&] { return R.PresentEx(d, from, to, window, region, flags); });
 }
 HOOK hookReset(Device* d, D3DPRESENT_PARAMETERS* p) {
     { Locked lock; resetRecorder(); resetInterpolation(); }   // a Reset needs our references gone
-    return R.Reset(d, p);
+    bool fullscreen = standaloneDeviceParams(p, nullptr);
+    HRESULT hr = R.Reset(d, p);
+    standaloneDeviceCreated(p, fullscreen, hr);
+    return hr;
 }
 HOOK hookResetEx(Device* d, D3DPRESENT_PARAMETERS* p, D3DDISPLAYMODEEX* mode) {
     { Locked lock; resetRecorder(); resetInterpolation(); }
-    return R.ResetEx(d, p, mode);
+    bool fullscreen = standaloneDeviceParams(p, nullptr);
+    HRESULT hr = R.ResetEx(d, p, fullscreen ? nullptr : mode);   // a window has no display mode
+    standaloneDeviceCreated(p, fullscreen, hr);
+    return hr;
 }
 HOOK hookCreateVertexShader(Device* d, const DWORD* code, IDirect3DVertexShader9** out) {
     HRESULT hr = R.CreateVertexShader(d, code, out);
@@ -205,7 +212,12 @@ RECORDING_HOOK(SetMaterial, (Device* d, const D3DMATERIAL9* m), recordMaterial(m
 RECORDING_HOOK(SetLight, (Device* d, DWORD i, const D3DLIGHT9* l), recordLight(i, l), (d, i, l))
 RECORDING_HOOK(LightEnable, (Device* d, DWORD i, BOOL on), recordLightEnable(i, on), (d, i, on))
 RECORDING_HOOK(SetRenderState, (Device* d, D3DRENDERSTATETYPE s, DWORD v), recordRenderState(s, v), (d, s, v))
-RECORDING_HOOK(SetTexture, (Device* d, DWORD stage, IDirect3DBaseTexture9* t), recordTexture(stage, t), (d, stage, t))
+// The recorder keeps the game's own texture; a texture pack's replacement is swapped in only
+// where a texture is really set (here and in the replay).
+HOOK hookSetTexture(Device* d, DWORD stage, IDirect3DBaseTexture9* t) {
+    { Locked lock; recordTexture(stage, t); }
+    return R.SetTexture(d, stage, textureReplacement(t));
+}
 RECORDING_HOOK(SetTextureStageState, (Device* d, DWORD stage, D3DTEXTURESTAGESTATETYPE t, DWORD v),
                recordTextureStageState(stage, t, v), (d, stage, t, v))
 RECORDING_HOOK(SetSamplerState, (Device* d, DWORD s, D3DSAMPLERSTATETYPE t, DWORD v), recordSamplerState(s, t, v), (d, s, t, v))
@@ -232,12 +244,19 @@ RECORDING_HOOK(DrawIndexedPrimitiveUP,
                recordDrawIndexedUP(t, m, n, c, i, f, v, s), (d, t, m, n, c, i, f, v, s))
 RECORDING_HOOK(BeginScene, (Device* d), recordScene(true), (d))
 RECORDING_HOOK(EndScene, (Device* d), recordScene(false), (d))
-RECORDING_HOOK(StretchRect, (Device* d, IDirect3DSurface9* a, const RECT* ra, IDirect3DSurface9* b, const RECT* rb, D3DTEXTUREFILTERTYPE f),
-               recordStretchRect(a, ra, b, rb, f), (d, a, ra, b, rb, f))
-RECORDING_HOOK(ColorFill, (Device* d, IDirect3DSurface9* s, const RECT* r, D3DCOLOR c), recordColorFill(s, r, c), (d, s, r, c))
-RECORDING_HOOK(UpdateSurface, (Device* d, IDirect3DSurface9* a, const RECT* ra, IDirect3DSurface9* b, const POINT* pb),
-               recordUpdateSurface(a, ra, b, pb), (d, a, ra, b, pb))
-RECORDING_HOOK(UpdateTexture, (Device* d, IDirect3DBaseTexture9* a, IDirect3DBaseTexture9* b), recordUpdateTexture(a, b), (d, a, b))
+// Copies made by the texture loader's thread (while it creates replacements) aren't the game's:
+// they're passed on without being recorded.
+#define COPY_HOOK(name, params, record, args)                                                        \
+    HOOK hook##name params {                                                                          \
+        if (!textureWorkerThread()) { Locked lock; record; }                                          \
+        return R.name args;                                                                           \
+    }
+COPY_HOOK(StretchRect, (Device* d, IDirect3DSurface9* a, const RECT* ra, IDirect3DSurface9* b, const RECT* rb, D3DTEXTUREFILTERTYPE f),
+          recordStretchRect(a, ra, b, rb, f), (d, a, ra, b, rb, f))
+COPY_HOOK(ColorFill, (Device* d, IDirect3DSurface9* s, const RECT* r, D3DCOLOR c), recordColorFill(s, r, c), (d, s, r, c))
+COPY_HOOK(UpdateSurface, (Device* d, IDirect3DSurface9* a, const RECT* ra, IDirect3DSurface9* b, const POINT* pb),
+          recordUpdateSurface(a, ra, b, pb), (d, a, ra, b, pb))
+COPY_HOOK(UpdateTexture, (Device* d, IDirect3DBaseTexture9* a, IDirect3DBaseTexture9* b), recordUpdateTexture(a, b), (d, a, b))
 
 static void hookDevice(Device* device, bool ex) {
     IDirect3DDevice9ExVtbl* v = device->lpVtbl;
@@ -265,7 +284,9 @@ static decltype(IDirect3D9ExVtbl::CreateDeviceEx) gCreateDeviceEx;
 
 static HRESULT STDMETHODCALLTYPE hookCreateDevice(IDirect3D9Ex* d3d, UINT adapter, D3DDEVTYPE type, HWND window, DWORD flags,
                                                   D3DPRESENT_PARAMETERS* p, IDirect3DDevice9** out) {
+    bool fullscreen = standaloneDeviceParams(p, window);
     HRESULT hr = gCreateDevice(d3d, adapter, type, window, flags, p, out);
+    standaloneDeviceCreated(p, fullscreen, hr);
     if (SUCCEEDED(hr) && out && *out) {
         Locked lock;
         resetRecorder(); resetInterpolation();
@@ -275,7 +296,9 @@ static HRESULT STDMETHODCALLTYPE hookCreateDevice(IDirect3D9Ex* d3d, UINT adapte
 }
 static HRESULT STDMETHODCALLTYPE hookCreateDeviceEx(IDirect3D9Ex* d3d, UINT adapter, D3DDEVTYPE type, HWND window, DWORD flags,
                                                     D3DPRESENT_PARAMETERS* p, D3DDISPLAYMODEEX* mode, IDirect3DDevice9Ex** out) {
-    HRESULT hr = gCreateDeviceEx(d3d, adapter, type, window, flags, p, mode, out);
+    bool fullscreen = standaloneDeviceParams(p, window);
+    HRESULT hr = gCreateDeviceEx(d3d, adapter, type, window, flags, p, fullscreen ? nullptr : mode, out);
+    standaloneDeviceCreated(p, fullscreen, hr);
     if (SUCCEEDED(hr) && out && *out) {
         Locked lock;
         resetRecorder(); resetInterpolation();
@@ -297,7 +320,8 @@ static std::string moduleDir() {
     return s.substr(0, s.find_last_of("\\/"));
 }
 
-// TSFix+ paces the game itself, so TSFix's own frame limiter must be well above 30. At 60,
+// With TSFix (version 0.9's setup): TSFix+ paces the game itself, so TSFix's own frame limiter
+// must be well above 30. At 60,
 // its ticks drift against TSFix+'s schedule and hold a frame back about every 20 game frames
 // (a small hitch); at 30, the game can't keep time. Warn in the log.
 static void checkTsfix() {
@@ -317,9 +341,12 @@ static bool start() {
     gDir = moduleDir();
     gLog = fopen((gDir + "\\tsfixplus.log").c_str(), "w");
     log("TSFix+ started");
-    // dgVoodoo if it is installed next to the game, otherwise Windows' Direct3D 9.
+    // On its own: the system's Direct3D 9. With TSFix (loaded by Special K, version 0.9's setup):
+    // dgVoodoo if it is installed next to the game, as TSFix sets it up. (dgVoodoo's modern
+    // swapchain also brings in Windows' Auto HDR, which broke up the videos.)
     std::string dgVoodoo = gDir + "\\dgVoodoo.dll";
-    if (GetFileAttributesA(dgVoodoo.c_str()) != INVALID_FILE_ATTRIBUTES) gRealD3D9 = LoadLibraryA(dgVoodoo.c_str());
+    if (GetModuleHandleA("tsfix.dll") && GetFileAttributesA(dgVoodoo.c_str()) != INVALID_FILE_ATTRIBUTES)
+        gRealD3D9 = LoadLibraryA(dgVoodoo.c_str());
     if (!gRealD3D9) {
         char system[MAX_PATH];
         GetSystemDirectoryA(system, MAX_PATH);
@@ -328,8 +355,11 @@ static bool start() {
     char loaded[MAX_PATH] = "";
     if (gRealD3D9) GetModuleFileNameA(gRealD3D9, loaded, MAX_PATH);
     log("Direct3D 9: %s", gRealD3D9 ? loaded : "could not be loaded");
-    configureInterpolation((gDir + "\\tsfixplus.ini").c_str());
-    checkTsfix();
+    std::string ini = gDir + "\\tsfixplus.ini";
+    configureInterpolation(ini.c_str());
+    standaloneStart();
+    if (gStandalone) texturesStart(GetPrivateProfileIntA("TSFixPlus", "TexturePacks", 1, ini.c_str()) != 0);
+    else checkTsfix();
     return gRealD3D9 != nullptr;
 }
 

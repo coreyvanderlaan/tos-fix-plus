@@ -3,6 +3,9 @@
 //   main.cpp         loads the real Direct3D 9, hooks the device and passes every call on
 //   recorder.cpp     records each game frame's drawing commands and can replay them
 //   interpolate.cpp  draws the in-between frames and paces the game
+//   standalone.cpp   the fixes the Steam version needs (what TSFix did), when TSFix isn't loaded
+//   textures.cpp     TSFix-format texture packs, when TSFix isn't loaded
+//   lzma/            the 7-Zip decoder (LZMA SDK, public domain), for the packs
 //
 // See docs/HOW-IT-WORKS.md for the design.
 #pragma once
@@ -129,3 +132,20 @@ HRESULT presentFrame(IDirect3DDevice9Ex* device, HRESULT (*present)(void*), void
 template <class F> HRESULT presentFrame(IDirect3DDevice9Ex* device, F present) {
     return presentFrame(device, [](void* c) { return (*(F*)c)(); }, &present);
 }
+int blendedLastFrame();   // objects blended in the last game frame (0 while a video plays)
+
+// ---------------------------------------------------------------- standalone.cpp
+
+extern bool gStandalone;   // TSFix isn't loaded: TSFix+ provides the game fixes itself
+void standaloneStart();    // at start-up: patches the game
+// Around device creation and Reset: fullscreen becomes a borderless window, and the window is
+// kept active. standaloneDeviceParams returns whether the game asked for fullscreen.
+bool standaloneDeviceParams(D3DPRESENT_PARAMETERS* p, HWND focusWindow);
+void standaloneDeviceCreated(D3DPRESENT_PARAMETERS* p, bool fullscreen, HRESULT hr);
+void standaloneFrame(IDirect3DDevice9* device);   // at each game Present, with gLock held
+
+// ---------------------------------------------------------------- textures.cpp
+
+void texturesStart(bool enabled);
+IDirect3DBaseTexture9* textureReplacement(IDirect3DBaseTexture9* texture);   // what to draw with instead
+bool textureWorkerThread();   // the texture loader's own Direct3D calls, which aren't the game's

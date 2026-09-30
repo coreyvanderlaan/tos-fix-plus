@@ -1,10 +1,11 @@
 # TSFix+
 
-Smooth motion at your display's full refresh rate (120 Hz, 144 Hz, and so on) for the Steam PC
-version of **Tales of Symphonia**, as an add-on to [TSFix](https://wiki.special-k.info/SpecialK/Custom/TSFix).
+Smooth motion at your display's full refresh rate (60, 90, 120, 144 Hz...) for the Steam PC
+version of **Tales of Symphonia**, plus the fixes the PC version still needs. No other mods
+required.
 
 The game updates its world 30 times a second. TSFix+ leaves that alone, so game speed,
-physics, cutscene timing and everything else behave exactly as before. What it changes is what
+battles, cutscene timing and everything else behave exactly as before. What it changes is what
 you see between those updates: it draws the game's own scene again for every refresh of your
 display, with every object, character and the camera placed partway between where the game had
 them in its last two updates. The result is motion as smooth as your monitor can show, drawn by
@@ -14,17 +15,32 @@ the real scene rendered at an in-between moment.
 The cost: what you see runs about one game update (1/30 s, ~33 ms) behind, because an in-between
 frame needs the update that comes after it.
 
-Press **F9** in game to turn TSFix+ on and off and compare.
+Press **F9** in game to turn the smoothing on and off and compare.
+
+## What's included
+
+TSFix+ 1.0 works on its own on the current Steam version of the game. It includes the fixes that
+[TSFix](https://wiki.special-k.info/SpecialK/Custom/TSFix) used to provide and that the official
+patches never made (TSFix itself doesn't run on the current Steam version):
+
+- the game keeps running when you switch to another window, and **Alt+Tab** works;
+- fullscreen is shown as a **borderless window** over your screen, and windowed mode as a
+  borderless window;
+- the game's own stuttery 30 fps limiter is replaced by TSFix+'s exact pacing;
+- the **intro and other videos** play smoothly, without stutter or black blocks;
+- the **Zelos title achievement**, which never unlocks in the unmodded game, can be earned;
+- optional **texture packs** in TSFix's format (such as the 4x upscale pack) are loaded if you
+  have them.
+
+It doesn't change what the official patches already fixed (resolution up to 4K, anti-aliasing,
+the old blur).
 
 ## Requirements
 
-- Tales of Symphonia, the Steam version for Windows.
-- **TSFix 0.10.5**, installed and working. It includes Special K, which loads TSFix+.
-- The game in borderless fullscreen (TSFix's default: it fills the screen) or a window. Exclusive
-  fullscreen hasn't been tested.
-- Windows 10 or 11.
-- dgVoodoo is optional: if `dgVoodoo.dll` is next to the game, TSFix+ uses it; otherwise it
-  uses Windows' own Direct3D 9.
+- Tales of Symphonia, the **Steam version**, kept up to date by Steam.
+- Windows 10 or 11. (A Steam Deck guide is below; it hasn't been tested yet.)
+- No TSFix, Special K or dgVoodoo: TSFix+ doesn't need them. See
+  [Coming from TSFix](#coming-from-tsfix-or-tsfix-09) if you have them installed.
 
 ## Installing
 
@@ -38,79 +54,98 @@ Press **F9** in game to turn TSFix+ on and off and compare.
 > Don't use the green **Code → Download ZIP** button at the top of this page: that downloads
 > the source code, not the ready-to-use mod.
 
-The zip contains `tsfixplus.dll` and `tsfixplus.ini` (the mod and its setting), `install.bat`,
-`uninstall.bat` and `tsfixplus-setup.ps1` (the installer), `INSTALL.txt` (these instructions,
-for Notepad) and the licence.
-
-### 2. Install
+### 2. Copy two files into the game folder
 
 1. Open the game folder: in Steam, right-click **Tales of Symphonia**, then **Manage → Browse
    local files**. It's the folder with `TOS.exe` in it.
-2. Unzip **everything** from the zip into that folder.
-3. Make sure the game is closed, then double-click **`install.bat`**.
+2. Copy **`d3d9.dll`** and **`tsfixplus.ini`** from the zip into that folder. If Windows asks
+   whether to replace a `d3d9.dll` that's already there, see
+   [Coming from TSFix](#coming-from-tsfix-or-tsfix-09).
 
-`install.bat` makes two small changes to TSFix's settings files, after saving your originals as
-`d3d9.ini.before-tsfixplus` and `tsfix.ini.before-tsfixplus`:
-
-- **`d3d9.ini`**: tells Special K (part of TSFix) to load `tsfixplus.dll`.
-- **`tsfix.ini`**: raises TSFix's frame limit to 1000. TSFix+ keeps the game at exactly 30
-  updates a second itself, and TSFix's own limiter has to stay out of its way: at 60 it still
-  holds a frame back now and then, which shows as a small hitch.
-
-It changes nothing else in either file, and stops without changing anything if the game is
-running, TSFix isn't installed, or it isn't in the game folder.
-
-<details>
-<summary><b>Installing by hand instead</b></summary>
-
-1. Copy **`tsfixplus.dll`** and **`tsfixplus.ini`** into the game folder.
-2. Tell Special K to load TSFix+. Open **`d3d9.ini`** in the game folder with Notepad:
-   - If it has an `[Import.dgvoodoo]` section, change that section's `Filename=dgVoodoo.dll` to
-     `Filename=tsfixplus.dll`. (TSFix+ loads dgVoodoo itself.)
-   - Otherwise, add this section at the top of the file:
-     ```ini
-     [Import.TSFixPlus]
-     Architecture=Win32
-     Role=d3d9
-     When=Proxy
-     Filename=tsfixplus.dll
-     ```
-   Save the file.
-3. Open **`tsfix.ini`** and, under `[TSFix.Window]`, change the two `30.0` values to
-   ```ini
-   ForegroundFPS=1000.0
-   BackgroundFPS=1000.0
-   ```
-   and save the file. Only do this together with step 2: without TSFix+, a limit above 30 makes
-   the whole game run too fast.
-
-</details>
+That's all. The game loads `d3d9.dll` from its own folder, and that's TSFix+.
 
 ### 3. Check it works
 
-Start the game and press **F9** a few times while walking around: motion switches between
-TSFix+ and the original 30 fps. A file `tsfixplus.log` also appears in the game folder; its
-first lines say TSFix+ started and which Direct3D 9 it is using.
+Start the game. A file `tsfixplus.log` appears in the game folder; its first lines say TSFix+
+started and list the fixes it applied. Walk around and press **F9** a few times: motion switches
+between smooth and the original 30 fps.
+
+### Recommended settings
+
+- **Windows' refresh rate:** TSFix+ shows as many frames as your screen refreshes, and a
+  borderless window runs at the refresh rate Windows' desktop is set to. Check **Settings →
+  System → Display → Advanced display → Choose a refresh rate** and pick the highest.
+- **The game's resolution:** set it to your screen's own resolution (for example 3840x2160 on a
+  4K screen). A different size has to be scaled by Windows, which stops G-Sync/FreeSync from
+  working and can make videos stutter.
+- **HDR screens:** turn **Auto HDR** off for the game (**Settings → System → Display → Graphics**,
+  choose `TOS.exe`, **Auto HDR: Off**). With it on, the start of the intro video can break up.
+- **G-Sync / FreeSync:** fine to leave on (tested with G-Sync).
 
 ## Using it
 
 - **F9** turns the smoothing on and off. The game's speed is the same either way.
-- **`tsfixplus.ini`** has one setting:
+- **`tsfixplus.ini`** has two settings:
   ```ini
   ; The most frames per second to show. 0 = as many as the display refreshes.
   MaxFPS=0
+  ; Load TSFix-format texture packs from TSFix_Res\inject, if there are any. 0 = off.
+  TexturePacks=1
   ```
-  A lower number, such as 60 or 90, uses less GPU time.
+  A lower `MaxFPS`, such as 60 or 90, uses less GPU time.
+
+### Texture packs
+
+TSFix+ loads texture packs made for TSFix: `.7z` archives (or loose `.dds` files) in a
+`TSFix_Res\inject` folder inside the game folder, such as the 4x upscale pack linked from the
+[TSFix page](https://wiki.special-k.info/SpecialK/Custom/TSFix). If you don't have any, nothing
+happens. They're optional: the difference is mostly in close-up detail, and loading is
+noticeably slower with the large 4x pack. `TexturePacks=0` turns them off without deleting them.
+
+## Steam Deck (not yet tested)
+
+> This guide hasn't been tried on a Steam Deck yet. If you try it, please
+> [open an issue](../../issues) and say whether it worked, with your `tsfixplus.log`.
+
+On the Deck the game runs through Proton, which has its own `d3d9.dll`; one launch option tells
+it to use TSFix+'s instead.
+
+1. Switch to **Desktop Mode** (Steam button → **Power → Switch to Desktop**).
+2. Download the zip from the [latest release](../../releases/latest) in the browser, open your
+   **Downloads** folder, right-click the zip and choose **Extract** (or **Extract archive here**).
+3. In Steam, right-click **Tales of Symphonia → Manage → Browse local files**, and copy
+   **`d3d9.dll`** and **`tsfixplus.ini`** into that folder.
+4. In Steam, right-click **Tales of Symphonia → Properties → General**, and under
+   **Launch Options** enter:
+   ```
+   WINEDLLOVERRIDES="d3d9=n,b" %command%
+   ```
+5. Switch back to **Gaming Mode** and start the game.
+6. Frame rate: TSFix+ follows the screen's refresh rate. In the quick menu (**…** button →
+   **Performance**), leave the **frame rate limit** off; on a Steam Deck OLED, set the
+   **refresh rate to 90 Hz** for 90 frames a second (the LCD model runs at 60).
+
+To check it's working, look for `tsfixplus.log` in the game folder (step 3). To undo it, delete
+the two files and clear the launch option.
+
+## Coming from TSFix, or TSFix+ 0.9
+
+TSFix+ 1.0 replaces both: it needs neither TSFix nor Special K.
+
+1. If you set TSFix up on the game's 2016 launch version, get the current version back: in
+   Steam, right-click the game → **Properties → Installed Files → Verify integrity of game files**.
+2. In the game folder, delete TSFix's and Special K's files: `d3d9.dll` and `d3d9.ini` (Special
+   K), `tsfix.dll` and `tsfix.ini`, and `dgVoodoo.dll` and `dgVoodoo.conf` if they are there. If
+   you had TSFix+ 0.9, also delete `tsfixplus.dll` and the `install.bat`, `uninstall.bat` and
+   `tsfixplus-setup.ps1` files. Keep the `TSFix_Res` folder if you want its texture packs.
+3. Install TSFix+ as above.
+
+(TSFix+ still works as an add-on to TSFix, as version 0.9 did, if you prefer that setup: then
+TSFix provides the fixes and TSFix+ only smooths.)
 
 ## Uninstalling
 
-Close the game and double-click **`uninstall.bat`** in the game folder. It undoes both changes
-and deletes `tsfixplus.dll`, `tsfixplus.ini` and `tsfixplus.log`; you can then delete
-`install.bat`, `uninstall.bat` and `tsfixplus-setup.ps1`.
-
-By hand: delete those three files, change `Filename=tsfixplus.dll` in `d3d9.ini` back to
-`Filename=dgVoodoo.dll` (or delete the `[Import.TSFixPlus]` section), and set `ForegroundFPS`
-and `BackgroundFPS` in `tsfix.ini` back to `30.0`.
+Delete `d3d9.dll`, `tsfixplus.ini` and `tsfixplus.log` from the game folder.
 
 ## What's smoothed
 
@@ -121,36 +156,38 @@ and `BackgroundFPS` in `tsfix.ini` back to `30.0`.
 | Outlines and depth effects | Yes, together with their objects |
 | The battle target marker, shadows under characters | Yes, they follow what they belong to |
 | Spell effects, particles, grass and other sprites | Yes, each moved as one piece; a sprite that jumps (a new particle) appears in place |
-| HUD, menus, text, pre-rendered videos | No, on purpose: they stay exactly as the game draws them |
+| HUD, menus, skits, text, videos | No, on purpose: they stay exactly as the game draws them, at 30 |
 
 Camera cuts are detected and never blended across.
 
 ## Known limitations
 
-- Tested on the first hours of the game at 144 Hz, and briefly at 60 Hz, on a G-Sync monitor
-  (G-Sync on), in borderless fullscreen. Exclusive fullscreen and FreeSync haven't been tested.
+- Tested on Windows 11 at 144 Hz and 60 Hz, on a G-Sync monitor with G-Sync on. Not yet tested:
+  the Steam Deck, FreeSync, other graphics cards.
 - About 33 ms of extra display latency, as explained above.
+- Menus, skits and the battle results screen stay at 30 frames a second.
 
 ## Reporting a problem
 
-Open an issue with:
+Open an [issue](../../issues) with:
 
 - what you saw, and where in the game;
 - your display's refresh rate;
 - the `tsfixplus.log` file from the game folder.
 
-Pressing F9 to see whether the problem disappears with TSFix+ off is a quick way to tell
-whether it is caused by TSFix+.
+Pressing F9 to see whether the problem disappears with the smoothing off is a quick way to tell
+whether it is caused by the smoothing.
 
 ## Building from source
 
-TSFix+ is plain C++ with no dependencies beyond the Windows SDK.
+TSFix+ is plain C++ with no dependencies beyond the Windows SDK (the 7z decoder for texture
+packs is included, in `src/lzma`).
 
 1. Install [Visual Studio](https://visualstudio.microsoft.com/) 2019 or later, or its Build
    Tools, with **Desktop development with C++**.
-2. Run **`build.bat`**. It builds `build\tsfixplus.dll` (32-bit, like the game) and copies
+2. Run **`build.bat`**. It builds `build\d3d9.dll` (32-bit, like the game) and copies
    `tsfixplus.ini` next to it.
-3. Install the files from `build\` as described above.
+3. Copy both into the game folder.
 
 **`package.bat <version>`** (for example `package.bat 1.0.0`) builds and packs the release zip,
 `release\tsfixplus-<version>.zip`, with the DLL, the settings file, `INSTALL.txt` and the
@@ -159,27 +196,32 @@ licence. That zip is what gets attached to a GitHub release.
 ## How it works, and changing it
 
 [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) explains the design: how frames are recorded and
-redrawn, how objects are paired between updates, what is blended and why, and how the pacing
-works. It is the place to start before changing anything.
+redrawn, how objects are paired between updates, what is blended and why, how the pacing works,
+and what each game fix does. It is the place to start before changing anything.
 
 | File | What it does |
 |---|---|
 | `src/main.cpp` | Loads the real Direct3D 9 and hooks the game's device |
 | `src/recorder.cpp`, `src/recorder.h` | Records each game frame's drawing and redraws it |
 | `src/interpolate.cpp` | Pairs objects between frames, blends them, and paces the game |
+| `src/standalone.cpp` | The game fixes (limiter, timer, clock, window, focus, Alt+Tab, achievement) |
+| `src/textures.cpp` | TSFix-format texture packs |
+| `src/lzma/` | The 7z decoder from the LZMA SDK (public domain) |
 | `src/common.h` | Declarations shared by the files above |
 | `src/tsfixplus.def` | The DLL's exported functions |
-| `setup/` | `install.bat`, `uninstall.bat` and the script behind them, `tsfixplus-setup.ps1` |
-| `tsfixplus.ini` | The user setting |
+| `tsfixplus.ini` | The user settings |
 
 ## Credits
 
-- **TSFix** and **Special K** by Kaldaien: TSFix+ depends on them and is loaded by Special K.
-- **dgVoodoo** by Dege, used when installed.
+- **TSFix** by Kaldaien ([source](https://github.com/Kaldaien/TSF), GPL-3): it found the problems
+  TSFix+ fixes, and TSFix+'s fixes are reimplemented from its approach. Texture packs use its
+  format.
+- **LZMA SDK** by Igor Pavlov (public domain): the 7z decoder for texture packs.
 
 TSFix+ is an independent project. It isn't made by or affiliated with the authors of TSFix or
 Special K, or with Bandai Namco. It contains none of the game's code or data.
 
 ## License
 
-[MIT](LICENSE)
+[GNU General Public License v3.0](LICENSE). Version 0.9 was released under the MIT licence; from
+1.0, which builds on TSFix's GPL-3 work, TSFix+ is GPL-3.

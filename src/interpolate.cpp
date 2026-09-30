@@ -19,6 +19,8 @@
 //     with its own motion as one solid piece: the target marker and shadows are recognised by the
 //     part of the texture they show; everything else is grouped into whole shapes.
 //   - 2D (HUD, menus, text) and videos are never blended.
+// (A texture pack's replacements are only swapped in when the frame is drawn: pairing is by the
+// game's own textures.)
 // Nothing is blended across a camera cut.
 #include "recorder.h"
 #include <algorithm>
@@ -503,7 +505,10 @@ static void buildPlan() {
         // Rings, and every other sprite (spell effects, particles), grouped per kind into whole
         // shapes: each shape pairs with the nearest of frame N-1 and all its triangles move
         // together. One that moved more than its size (a new particle, a burst) isn't moved.
-        auto moveShapes = [&](const std::vector<Sprite>& spritesNow, const std::vector<Sprite>& spritesBefore) {
+        // For the other kinds (strict), only a shape of similar size (within 2x) closer than the
+        // smaller one's size: a spell's ground circle that had just appeared paired with a smaller
+        // effect of the same kind above the caster's head, and flickered between the two.
+        auto moveShapes = [&](const std::vector<Sprite>& spritesNow, const std::vector<Sprite>& spritesBefore, bool strict) {
             std::vector<Shape> now = groupShapes(spritesNow), before = groupShapes(spritesBefore);
             std::vector<bool> gone(before.size());
             for (const Shape& a : now) {
@@ -513,7 +518,10 @@ static void buildPlan() {
                     float dd = distance2(a.centre, before[j].centre);
                     if (dd < bestD) { bestD = dd; best = (int)j; }
                 }
-                if (best < 0 || bestD > std::max(a.size2, before[best].size2)) continue;
+                if (best < 0) continue;
+                float smaller = std::min(a.size2, before[best].size2), larger = std::max(a.size2, before[best].size2);
+                if (bestD > (strict ? smaller : larger)) continue;   // moved more than its size
+                if (strict && larger > 4 * smaller) continue;        // a different shape (size2 is squared)
                 gone[best] = true;
                 const Sprite& ref = spritesBefore[before[best].parts[0]];
                 float by[3] = {a.centre[0] - before[best].centre[0], a.centre[1] - before[best].centre[1], a.centre[2] - before[best].centre[2]};
@@ -524,10 +532,10 @@ static void buildPlan() {
                 }
             }
         };
-        if (!ringsNow.empty()) moveShapes(ringsNow, ringsBefore);
+        if (!ringsNow.empty()) moveShapes(ringsNow, ringsBefore, false);
         for (auto& kind : othersNow) {
             auto before = othersBefore.find(kind.first);
-            if (before != othersBefore.end()) moveShapes(kind.second, before->second);
+            if (before != othersBefore.end()) moveShapes(kind.second, before->second, true);
         }
     }
 
@@ -607,22 +615,37 @@ static void waitUntil(double t) {
     }
 }
 
-// In a window (TSFix's borderless mode) the desktop compositor puts a new image on screen once
-// per refresh. It reports when the last refresh happened and the time between refreshes.
+// The game runs in a borderless window, and the desktop compositor puts a new image on screen
+// once per refresh. It reports when the last refresh happened and the time between refreshes.
+// Where it doesn't (it may not under Proton, on the Steam Deck), the display's refresh rate is
+// used, without the timing of each refresh.
 struct Refresh { double last, period; bool known; };
+
+static double displayPeriod() {
+    DEVMODEA mode = {}; mode.dmSize = sizeof mode;
+    if (EnumDisplaySettingsA(nullptr, ENUM_CURRENT_SETTINGS, &mode) && mode.dmDisplayFrequency > 1)
+        return 1000.0 / mode.dmDisplayFrequency;
+    return 1000.0 / 60.0;
+}
 
 static Refresh refresh() {
     static LARGE_INTEGER f;
     if (!f.QuadPart) QueryPerformanceFrequency(&f);
     DWM_TIMING_INFO ti = {}; ti.cbSize = sizeof ti;
-    if (SUCCEEDED(DwmGetCompositionTimingInfo(nullptr, &ti)) && ti.qpcRefreshPeriod)
+    if (SUCCEEDED(DwmGetCompositionTimingInfo(nullptr, &ti)) && ti.qpcRefreshPeriod && ti.qpcVBlank)
         return {1000.0 * (double)ti.qpcVBlank / (double)f.QuadPart, 1000.0 * (double)ti.qpcRefreshPeriod / (double)f.QuadPart, true};
-    return {0, 1000.0 / 60.0, false};
+    static double period, checked;
+    double now = nowMs();
+    if (!period || now - checked > 5000.0) { period = displayPeriod(); checked = now; }   // the rate can change
+    return {0, period, false};
 }
 static double nextRefresh(const Refresh& r, double t) {
     if (!r.known) return t + r.period;
     return r.last + ceil((t - r.last) / r.period) * r.period;
 }
+
+static int gBlendedLast;        // objects blended in the last game frame (0 if not blending)
+int blendedLastFrame() { return gBlendedLast; }
 
 static double gStart = 0;      // when frame N's share of the timeline began
 static double gWork = 5.0;     // how long the game needs from our return to its next Present
@@ -652,6 +675,7 @@ HRESULT presentFrame(IDirect3DDevice9Ex* d, HRESULT (*present)(void*), void* con
     bool blend = gEnabled && gLastFrame.complete;
     if (blend) buildPlan();
     blend = blend && !gPlan.cut && (gPlan.blended || gPlan.characters || gPlan.sprites);
+    gBlendedLast = blend ? gPlan.blended + gPlan.characters + gPlan.sprites : 0;
 
     HRESULT hr = S_OK;
     int presents = 0;

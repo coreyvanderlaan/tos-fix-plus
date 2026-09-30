@@ -1,53 +1,52 @@
 TSFix+ - installation
 =====================
 
-Smooth motion at your display's full refresh rate for Tales of Symphonia (Steam, PC).
-Requires TSFix (https://wiki.special-k.info/SpecialK/Custom/TSFix) to be installed and working.
+Smooth motion at your display's full refresh rate for Tales of Symphonia (Steam, PC), plus the
+fixes the PC version still needs. Works on its own: TSFix, Special K and dgVoodoo aren't needed.
 
 Installing
 ----------
 1. Open the game folder. In Steam, right-click Tales of Symphonia > Manage > Browse local files.
-2. Unzip everything from this zip into that folder (next to TOS.exe).
-3. Make sure the game is closed, then double-click install.bat.
-4. Start the game. Press F9 at any time to turn TSFix+ on and off.
-
-install.bat makes two small changes, and saves your originals as d3d9.ini.before-tsfixplus and
-tsfix.ini.before-tsfixplus first:
-  - d3d9.ini: tells Special K (part of TSFix) to load tsfixplus.dll.
-  - tsfix.ini: raises TSFix's frame limit to 1000. TSFix+ keeps the game at 30 updates a second
-    itself; TSFix's own limiter just has to stay out of its way.
+2. Copy d3d9.dll and tsfixplus.ini from this zip into that folder (next to TOS.exe).
+   If Windows asks whether to replace an existing d3d9.dll, you have TSFix or Special K
+   installed: see "Coming from TSFix" below.
+3. Start the game. Press F9 at any time to turn the smoothing on and off.
 
 A file called tsfixplus.log appears in the game folder when the game runs; it's useful if you
 report a problem.
 
+Recommended settings
+--------------------
+- Windows' refresh rate: Settings > System > Display > Advanced display > Choose a refresh rate:
+  pick the highest. TSFix+ shows as many frames as the desktop refreshes.
+- The game's resolution: your screen's own resolution (for example 3840x2160 on a 4K screen).
+- HDR screens: turn Auto HDR off for TOS.exe (Settings > System > Display > Graphics).
+
+Settings (tsfixplus.ini)
+------------------------
+MaxFPS=0        0 shows as many frames as your display refreshes. A lower number, such as 60
+                or 90, uses less GPU power.
+TexturePacks=1  Loads TSFix-format texture packs from TSFix_Res\inject, if you have any.
+                0 turns them off.
+
+Steam Deck (not yet tested)
+---------------------------
+In Desktop Mode, copy d3d9.dll and tsfixplus.ini into the game folder as above. Then in Steam:
+right-click the game > Properties > General > Launch Options:
+    WINEDLLOVERRIDES="d3d9=n,b" %command%
+Leave the frame rate limit off in the quick menu; on a Steam Deck OLED, set 90 Hz for 90 fps.
+
+Coming from TSFix (or TSFix+ 0.9)
+---------------------------------
+1. If TSFix made you use the game's 2016 launch version, restore the current one: Steam >
+   right-click the game > Properties > Installed Files > Verify integrity of game files.
+2. Delete from the game folder: d3d9.dll, d3d9.ini, tsfix.dll, tsfix.ini, dgVoodoo.dll and
+   dgVoodoo.conf (if there), and TSFix+ 0.9's tsfixplus.dll, install.bat, uninstall.bat and
+   tsfixplus-setup.ps1. Keep the TSFix_Res folder for its texture packs.
+3. Install TSFix+ as above.
+
 Uninstalling
 ------------
-Close the game and double-click uninstall.bat. It undoes both changes and deletes tsfixplus.dll,
-tsfixplus.ini and tsfixplus.log. You can then delete install.bat, uninstall.bat and
-tsfixplus-setup.ps1.
-
-Settings
---------
-tsfixplus.ini has one setting, MaxFPS. 0 (the default) shows as many frames as your display
-refreshes. A lower number, such as 60 or 90, uses less GPU power.
-
-Installing by hand (instead of install.bat)
--------------------------------------------
-1. Copy tsfixplus.dll and tsfixplus.ini into the game folder.
-2. Open d3d9.ini with Notepad.
-   - If it has a section called [Import.dgvoodoo], change the line
-         Filename=dgVoodoo.dll
-     in that section to
-         Filename=tsfixplus.dll
-   - If it has no [Import.dgvoodoo] section, add these lines at the very top of the file:
-         [Import.TSFixPlus]
-         Architecture=Win32
-         Role=d3d9
-         When=Proxy
-         Filename=tsfixplus.dll
-   Save the file.
-3. Open tsfix.ini with Notepad. Under [TSFix.Window], change ForegroundFPS=30.0 and
-   BackgroundFPS=30.0 to 1000.0, and save it.
-   Only do this together with step 2: without TSFix+, this setting makes the game run too fast.
+Delete d3d9.dll, tsfixplus.ini and tsfixplus.log from the game folder.
 
 More information, and how to report a problem: https://github.com/coreyvanderlaan/ts-fix-plus

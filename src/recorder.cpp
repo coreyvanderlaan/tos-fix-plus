@@ -282,7 +282,7 @@ void applyState(IDirect3DDevice9Ex* d, const DeviceState& s) {
     for (int slot = 0; slot < TEXTURE_SLOTS; slot++) {
         for (int t = 0; t < SAMPLER_STATES; t++)
             if (s.samplerStateSet[slot][t]) R.SetSamplerState(d, samplerOf(slot), (D3DSAMPLERSTATETYPE)t, s.samplerState[slot][t]);
-        R.SetTexture(d, samplerOf(slot), s.texture[slot]);
+        R.SetTexture(d, samplerOf(slot), textureReplacement(s.texture[slot]));
     }
     R.SetVertexShader(d, s.vertexShader);
     R.SetPixelShader(d, s.pixelShader);
@@ -338,7 +338,7 @@ void replay(IDirect3DDevice9Ex* d, const Frame& frame, ReplayHooks* hooks) {
         case OP_LIGHT: R.SetLight(d, c.a, (const D3DLIGHT9*)data); break;
         case OP_LIGHT_ENABLE: R.LightEnable(d, c.a, c.b); break;
         case OP_RENDER_STATE: R.SetRenderState(d, (D3DRENDERSTATETYPE)c.a, c.b); break;
-        case OP_TEXTURE: R.SetTexture(d, c.a, (IDirect3DBaseTexture9*)c.p); break;
+        case OP_TEXTURE: R.SetTexture(d, c.a, textureReplacement((IDirect3DBaseTexture9*)c.p)); break;
         case OP_STAGE_STATE: R.SetTextureStageState(d, c.a, (D3DTEXTURESTAGESTATETYPE)c.b, c.c); break;
         case OP_SAMPLER_STATE: R.SetSamplerState(d, c.a, (D3DSAMPLERSTATETYPE)c.b, c.c); break;
         case OP_VERTEX_SHADER: R.SetVertexShader(d, (IDirect3DVertexShader9*)c.p); break;
