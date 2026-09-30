@@ -104,26 +104,26 @@ noticeably slower with the large 4x pack. `TexturePacks=0` turns them off withou
 
 ## Steam Deck
 
-On the Deck the game runs through Proton, which has its own `d3d9.dll`; one launch option tells
-it to use TSFix+'s instead.
+The same two files, no launch options needed (tested on a Steam Deck OLED: 90 fps).
 
 1. Switch to **Desktop Mode** (Steam button → **Power → Switch to Desktop**).
 2. Download the zip from the [latest release](../../releases/latest) in the browser, open your
    **Downloads** folder, right-click the zip and choose **Extract** (or **Extract archive here**).
 3. In Steam, right-click **Tales of Symphonia → Manage → Browse local files**, and copy
    **`d3d9.dll`** and **`tsfixplus.ini`** into that folder.
-4. In Steam, right-click **Tales of Symphonia → Properties → General**, and under
-   **Launch Options** enter:
-   ```
-   WINEDLLOVERRIDES="d3d9=n,b" %command%
-   ```
-5. Switch back to **Gaming Mode** and start the game.
-6. Frame rate: TSFix+ follows the screen's refresh rate. In the quick menu (**…** button →
+4. Switch back to **Gaming Mode** and start the game.
+5. Frame rate: TSFix+ follows the screen's refresh rate. In the quick menu (**…** button →
    **Performance**), leave the **frame rate limit** off; on a Steam Deck OLED, set the
    **refresh rate to 90 Hz** for 90 frames a second (the LCD model runs at 60).
 
 To check it's working, look for `tsfixplus.log` in the game folder (step 3). To undo it, delete
-the two files and clear the launch option.
+the two files.
+
+If the game stays at 30 and no `tsfixplus.log` appears, Proton isn't loading TSFix+: add this
+under **Properties → General → Launch Options**:
+```
+WINEDLLOVERRIDES="d3d9=n,b" %command%
+```
 
 ## Coming from TSFix, or TSFix+ 0.9
 

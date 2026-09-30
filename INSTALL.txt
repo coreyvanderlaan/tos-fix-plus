@@ -32,10 +32,10 @@ TexturePacks=1  Loads TSFix-format texture packs from TSFix_Res\inject, if you h
 
 Steam Deck
 ----------
-In Desktop Mode, copy d3d9.dll and tsfixplus.ini into the game folder as above. Then in Steam:
-right-click the game > Properties > General > Launch Options:
-    WINEDLLOVERRIDES="d3d9=n,b" %command%
+In Desktop Mode, copy d3d9.dll and tsfixplus.ini into the game folder as above. That's all.
 Leave the frame rate limit off in the quick menu; on a Steam Deck OLED, set 90 Hz for 90 fps.
+(If the game stays at 30 and no tsfixplus.log appears, add this launch option in Steam:
+right-click the game > Properties > General > Launch Options: WINEDLLOVERRIDES="d3d9=n,b" %command%)
 
 Coming from TSFix (or TSFix+ 0.9)
 ---------------------------------
