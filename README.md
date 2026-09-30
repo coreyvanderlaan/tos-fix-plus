@@ -160,7 +160,7 @@ Camera cuts are detected and never blended across.
 ## Known limitations
 
 - Tested on Windows 11 at 144 Hz and 60 Hz, on a G-Sync monitor with G-Sync on, and on a Steam
-  Deck. Not yet tested: FreeSync, other graphics cards.
+  Deck OLED. Not yet tested: FreeSync, other graphics cards.
 - About 33 ms of extra display latency, as explained above.
 - Menus, skits and the battle results screen stay at 30 frames a second.
 
