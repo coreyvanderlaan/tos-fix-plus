@@ -38,7 +38,7 @@ the old blur).
 ## Requirements
 
 - Tales of Symphonia, the **Steam version**, kept up to date by Steam.
-- Windows 10 or 11. (A Steam Deck guide is below; it hasn't been tested yet.)
+- Windows 10 or 11, or a Steam Deck (see the guide below).
 - No TSFix, Special K or dgVoodoo: TSFix+ doesn't need them. See
   [Coming from TSFix](#coming-from-tsfix-or-tsfix-09) if you have them installed.
 
@@ -102,10 +102,7 @@ TSFix+ loads texture packs made for TSFix: `.7z` archives (or loose `.dds` files
 happens. They're optional: the difference is mostly in close-up detail, and loading is
 noticeably slower with the large 4x pack. `TexturePacks=0` turns them off without deleting them.
 
-## Steam Deck (not yet tested)
-
-> This guide hasn't been tried on a Steam Deck yet. If you try it, please
-> [open an issue](../../issues) and say whether it worked, with your `tsfixplus.log`.
+## Steam Deck
 
 On the Deck the game runs through Proton, which has its own `d3d9.dll`; one launch option tells
 it to use TSFix+'s instead.
@@ -162,8 +159,8 @@ Camera cuts are detected and never blended across.
 
 ## Known limitations
 
-- Tested on Windows 11 at 144 Hz and 60 Hz, on a G-Sync monitor with G-Sync on. Not yet tested:
-  the Steam Deck, FreeSync, other graphics cards.
+- Tested on Windows 11 at 144 Hz and 60 Hz, on a G-Sync monitor with G-Sync on, and on a Steam
+  Deck. Not yet tested: FreeSync, other graphics cards.
 - About 33 ms of extra display latency, as explained above.
 - Menus, skits and the battle results screen stay at 30 frames a second.
 

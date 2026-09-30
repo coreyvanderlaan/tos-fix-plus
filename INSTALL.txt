@@ -3,6 +3,7 @@ TSFix+ - installation
 
 Smooth motion at your display's full refresh rate for Tales of Symphonia (Steam, PC), plus the
 fixes the PC version still needs. Works on its own: TSFix, Special K and dgVoodoo aren't needed.
+Works on Windows and on the Steam Deck.
 
 Installing
 ----------
@@ -29,8 +30,8 @@ MaxFPS=0        0 shows as many frames as your display refreshes. A lower number
 TexturePacks=1  Loads TSFix-format texture packs from TSFix_Res\inject, if you have any.
                 0 turns them off.
 
-Steam Deck (not yet tested)
----------------------------
+Steam Deck
+----------
 In Desktop Mode, copy d3d9.dll and tsfixplus.ini into the game folder as above. Then in Steam:
 right-click the game > Properties > General > Launch Options:
     WINEDLLOVERRIDES="d3d9=n,b" %command%
